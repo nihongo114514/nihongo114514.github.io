@@ -9,11 +9,11 @@
  const clip=id=>data.clips?.[id]||null;
  function emit(){
   const c=activeSpan,playing=!!c&&!audio.paused&&!audio.ended,pos=c?Math.max(0,Math.min(c.end-c.start,audio.currentTime-c.start)):0;
-  document.querySelectorAll('[data-action="audio-play"]').forEach(b=>{const same=b.dataset.audioId===active;b.textContent=same&&loading?'载入中…':same&&playing?'暂停':b.dataset.label||'听原声';b.setAttribute('aria-pressed',String(same&&playing))});
+  document.querySelectorAll('[data-action="audio-play"]').forEach(b=>{const same=b.dataset.audioId===active;b.textContent=same&&loading?'载入中…':same&&playing?'暂停':b.dataset.label||'听';b.setAttribute('aria-pressed',String(same&&playing))});
   document.querySelectorAll('[data-voice-strip]').forEach(el=>{const id=el.dataset.voiceStrip,x=clip(id);if(!x)return;const same=id===active,input=el.querySelector('input');input.disabled=!same||loading;input.value=String(same?pos:0);el.querySelector('time').textContent=clock(same?pos:0)+' / '+clock(x.end-x.start)});
   let current='';if(playing&&data.sections?.[active]){current=(data.sections[active].entries||[]).find(id=>{const x=clip(id);return x&&audio.currentTime>=x.start-.08&&audio.currentTime<x.end+.08})||''}else if(playing&&c?.physical)current=active;
   document.querySelectorAll('[data-reading-entry]').forEach(el=>el.classList.toggle('is-speaking',!!current&&el.dataset.readingEntry===current));
-  if(current&&current!==lastHighlight){lastHighlight=current;const el=document.querySelector('[data-reading-entry="'+CSS.escape(current)+'"]');if(el&&document.visibilityState==='visible'){const r=el.getBoundingClientRect();if(r.top<70||r.bottom>innerHeight-50)el.scrollIntoView({block:'center',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'})}}
+  if(current&&current!==lastHighlight&&data.sections?.[active]){lastHighlight=current;const el=document.querySelector('[data-reading-entry="'+CSS.escape(current)+'"]');if(el&&document.visibilityState==='visible'){const r=el.getBoundingClientRect();if(r.top<70||r.bottom>innerHeight-50)el.scrollIntoView({block:'center',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'})}}
  }
  function clearTimers(){clearTimeout(stopTimer);cancelAnimationFrame(raf)}
  function tick(){const c=activeSpan;if(!c||audio.paused)return;if(!c.physical&&audio.currentTime>=c.end-.015){audio.pause();audio.currentTime=c.end;emit();return}raf=requestAnimationFrame(tick)}
