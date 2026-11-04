@@ -1,5 +1,5 @@
-const SHELL='nihongo-series-shell-v6',AUDIO='nihongo-audio-original-v1';
-const ASSETS=['./','./index.html','./loader.js?v=6','./style.css?v=6','./voice.js?v=6','./app.js?v=6','./icon.svg','./manifest.webmanifest'];
+const SHELL='nihongo-series-shell-v7',AUDIO='nihongo-audio-original-v1';
+const ASSETS=['./','./index.html','./loader.js?v=7','./style.css?v=7','./voice.js?v=7','./app.js?v=7','./icon.svg','./manifest.webmanifest'];
 const pendingAudio=new Map();
 self.addEventListener('install',event=>event.waitUntil(caches.open(SHELL).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('nihongo-')&&key!==SHELL&&key!==AUDIO).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
@@ -20,7 +20,7 @@ async function cacheAudio(url){
  const u=new URL(url,self.location.href);u.hash='';if(u.origin!==self.location.origin||!u.pathname.includes('/audio/')||!u.pathname.endsWith('.mp3'))return;
  try{await wholeAudio(u.href)}catch{}
 }
-self.addEventListener('message',event=>{if(event.data?.type==='CACHE_AUDIO')event.waitUntil(cacheAudio(event.data.url));if(event.data?.type==='CACHE_BOOK'&&['beginner','intermediate','advanced'].includes(event.data.book)){const b=event.data.book;event.waitUntil(caches.open(SHELL).then(cache=>cache.addAll(['./books/'+b+'/data.js?v=6','./books/'+b+'/audio.js?v=6'])))}});
+self.addEventListener('message',event=>{if(event.data?.type==='CACHE_AUDIO')event.waitUntil(cacheAudio(event.data.url));if(event.data?.type==='CACHE_BOOK'&&['beginner','intermediate','advanced'].includes(event.data.book)){const b=event.data.book;event.waitUntil(caches.open(SHELL).then(cache=>cache.addAll(['./books/'+b+'/data.js?v=7','./books/'+b+'/audio.js?v=7'])))}});
 async function audioResponse(request,url){
  const saved=await wholeAudio(url.href);
  const range=request.headers.get('range');if(!range)return saved;
@@ -34,7 +34,7 @@ async function audioResponse(request,url){
 self.addEventListener('fetch',event=>{
  const url=new URL(event.request.url);url.hash='';if(event.request.method!=='GET'||url.origin!==self.location.origin||url.pathname.includes('/downloads/'))return;
  if(url.pathname.includes('/audio/')){event.respondWith(audioResponse(event.request,url));return}
- event.respondWith(fetch(event.request).then(response=>{
+ event.respondWith(fetch(event.request,{cache:'no-cache'}).then(response=>{
   if(response.ok&&!response.redirected&&response.type!=='opaqueredirect'){const copy=response.clone();caches.open(SHELL).then(cache=>cache.put(event.request,copy))}
   return response;
  }).catch(()=>caches.match(event.request).then(response=>response||(event.request.mode==='navigate'?caches.match('./index.html'):Response.error()))));
