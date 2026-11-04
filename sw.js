@@ -1,5 +1,5 @@
-const SHELL='nihongo-series-shell-v8',AUDIO='nihongo-audio-original-v1';
-const ASSETS=['./','./index.html','./loader.js?v=8','./style.css?v=8','./reference-ui.js?v=8','./voice.js?v=8','./app.js?v=8','./icon.svg','./manifest.webmanifest'];
+const SHELL='nihongo-series-shell-v9',AUDIO='nihongo-audio-original-v1';
+const ASSETS=['./','./index.html','./loader.js?v=9','./style.css?v=9','./reference-ui.js?v=9','./voice.js?v=9','./app.js?v=9','./icon.svg','./manifest.webmanifest'];
 const pendingAudio=new Map();
 self.addEventListener('install',event=>event.waitUntil(caches.open(SHELL).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('nihongo-')&&key!==SHELL&&key!==AUDIO).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
@@ -20,7 +20,7 @@ async function cacheAudio(url){
  const u=new URL(url,self.location.href);u.hash='';if(u.origin!==self.location.origin||!u.pathname.includes('/audio/')||!u.pathname.endsWith('.mp3'))return;
  try{await wholeAudio(u.href)}catch{}
 }
-self.addEventListener('message',event=>{if(event.data?.type==='CACHE_AUDIO')event.waitUntil(cacheAudio(event.data.url));if(event.data?.type==='CACHE_BOOK'&&['beginner','intermediate','advanced'].includes(event.data.book)){const b=event.data.book;event.waitUntil(caches.open(SHELL).then(cache=>cache.addAll(['./books/'+b+'/data.js?v=8','./books/'+b+'/audio.js?v=8','./books/'+b+'/reference.js?v=8','./books/'+b+'/audio-extra.js?v=8'])))}});
+self.addEventListener('message',event=>{if(event.data?.type==='CACHE_AUDIO')event.waitUntil(cacheAudio(event.data.url));if(event.data?.type==='CACHE_BOOK'&&['beginner','intermediate','advanced'].includes(event.data.book)){const b=event.data.book,suffix=event.data.compressed?'.json.gz?v=9':'.js?v=9';event.waitUntil(caches.open(SHELL).then(cache=>cache.addAll(['data','audio','reference','audio-extra'].map(kind=>'./books/'+b+'/'+kind+suffix))))}});
 async function audioResponse(request,url){
  const saved=await wholeAudio(url.href);
  const range=request.headers.get('range');if(!range)return saved;
