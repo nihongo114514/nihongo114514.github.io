@@ -7,4 +7,31 @@ const bookSelect=document.querySelector('#book-select');bookSelect.value=window.
 bookSelect.addEventListener('change',()=>{location.href='./?book='+encodeURIComponent(bookSelect.value)+'#lessons'});
 document.title='新世纪日本语教程 · '+window.BOOK_CONFIG.label;
 function script(src){return new Promise((resolve,reject)=>{const el=document.createElement('script');el.src=src;el.onload=resolve;el.onerror=reject;document.head.append(el)})}
-(async()=>{try{for(const src of ['books/'+window.BOOK_ID+'/data.js?v=8','books/'+window.BOOK_ID+'/audio.js?v=8','books/'+window.BOOK_ID+'/reference.js?v=8','books/'+window.BOOK_ID+'/audio-extra.js?v=8','voice.js?v=8','reference-ui.js?v=8','app.js?v=8'])await script(src);if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.ready.then(r=>r.active?.postMessage({type:'CACHE_BOOK',book:window.BOOK_ID})).catch(()=>{})}catch{document.querySelector('#main').innerHTML='<p class="quiet">资料未能载入，请联网后刷新。</p>'}})();
+async function bookData(){
+ if('DecompressionStream' in window){
+  try{
+   const values=await Promise.all(['data','audio','reference','audio-extra'].map(async kind=>{
+    const response=await fetch('books/'+window.BOOK_ID+'/'+kind+'.json.gz?v=9');
+    if(!response.ok||!response.body)throw Error('Data unavailable');
+    return new Response(response.body.pipeThrough(new DecompressionStream('gzip'))).json();
+   }));
+   [window.STUDY_DATA,window.STUDY_AUDIO,window.STUDY_REFERENCE]=values;
+   const data=window.STUDY_DATA,contexts=data.vocabularyContexts;
+   if(contexts){for(const word of data.vocab)word.contexts=(word.contexts||[]).map(id=>contexts[id]);delete data.vocabularyContexts}
+   for(const key of ['tracks','clips','byText'])Object.assign(window.STUDY_AUDIO[key],values[3][key]);
+   return true;
+  }catch{}
+ }
+ for(const kind of ['data','audio','reference','audio-extra'])await script('books/'+window.BOOK_ID+'/'+kind+'.js?v=9');
+ return false;
+}
+(async()=>{try{
+ document.querySelector('#main').innerHTML='<p class="quiet" role="status">载入中…</p>';
+ const compressed=await bookData();
+ for(const src of ['voice.js?v=9','reference-ui.js?v=9','app.js?v=9'])await script(src);
+ if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){
+  const message={type:'CACHE_BOOK',book:window.BOOK_ID,compressed};
+  navigator.serviceWorker.ready.then(r=>r.active?.postMessage(message)).catch(()=>{});
+  navigator.serviceWorker.addEventListener('controllerchange',()=>navigator.serviceWorker.controller?.postMessage(message));
+ }
+}catch{document.querySelector('#main').innerHTML='<p class="quiet">资料未能载入，请联网后刷新。</p>'}})();
