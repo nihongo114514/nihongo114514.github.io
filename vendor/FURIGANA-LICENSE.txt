@@ -1,0 +1,9 @@
+Character-aligned furigana data derived from JmdictFurigana and JmnedictFurigana.
+Project: https://github.com/Doublevil/JmdictFurigana
+Release: 2.3.1+2026-10-25
+Upstream dictionary projects: JMdict, JMnedict, KANJIDIC, Electronic Dictionary Research and Development Group.
+https://www.edrdg.org/
+Data license: Creative Commons Attribution-ShareAlike 4.0.
+https://creativecommons.org/licenses/by-sa/4.0/
+Changes: JSON records compacted to word + reading keys; site-specific verified name splits added; source readings preserved.
+Derived browser dataset: furigana-index.json.gz in this directory.
