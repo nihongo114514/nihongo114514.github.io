@@ -101,3 +101,5 @@ html{scroll-padding-top:calc(var(--site-header-height) + var(--section-header-he
 @media print{.site-header,.exam-config,.exam-question-actions,.exam-submit,.note-comment-panel{display:none!important}.exam-question{break-inside:avoid}.exam-options{display:block}}
 
 @media(max-width:760px){.site-header .wordmark{font-size:clamp(14px,4.3vw,19px)}}
+
+.writing-sheet{container-type:inline-size}.writing-guide{white-space:nowrap;font-size:calc(80cqw / var(--guide-glyphs,1))}
