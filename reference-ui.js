@@ -12,16 +12,16 @@ function withStudyTransitionV9(update,selector='#main',immediate=false){
  }).then(()=>{if(current())element.dataset.transitionPhase='idle'}).catch(()=>{});
 }
 function closeModalV9(){if($('#dialog').open)withStudyTransitionV9(()=>$('#dialog').close(),'#dialog-content')}
-function alignLearningContentV9(target){const board=document.querySelector('.learning-switchboard,.grammar-switchboard');if(board&&board.getBoundingClientRect().top<=1)window.scrollTo({top:Math.max(0,scrollY+target.getBoundingClientRect().top-board.getBoundingClientRect().bottom-18),behavior:'instant'})}
+function alignLearningContentV9(target){const board=document.querySelector('.learning-switchboard,.grammar-switchboard');if(board&&board.getBoundingClientRect().top<=(document.querySelector('.site-header')?.getBoundingClientRect().height||0)+1)window.scrollTo({top:Math.max(0,scrollY+target.getBoundingClientRect().top-board.getBoundingClientRect().bottom-18),behavior:'instant'})}
 function switchWordPageV9(t){const target=$('#word-results')||$('#all-word-results')||$('#vocabulary-results');if(!target)return;withStudyTransitionV9(()=>{target.innerHTML=wordList(window.filteredWords||[],Number(t.dataset.page));if(target.id==='vocabulary-results'){S.vocabularyPage=wordPage;save()}else if(target.id==='word-results'){S.wordPages??={};S.wordPages[S.lastLesson]=wordPage;save()}alignLearningContentV9(target)},'#'+target.id)}
 
-let shownRouteV8='',pendingNavigationV8=null,grammarQueryV8='',vocabularyQueryV8='',vocabularyPosV8='all';
+let shownRouteV8='',pendingNavigationV8=null,vocabularyPosV8='all';
 const positionsV8=new Map();
 const detailStatesV8=new Map();
 let conjugationKindV8='verb',conjugationWordV8=0;
 function verbTableV8(index=conjugationWordV8){
  const groups=window.STUDY_REFERENCE.conjugations,group=groups.find(x=>x.id===conjugationKindV8)||groups[0];conjugationWordV8=Math.min(index,group.entries.length-1);const word=group.entries[conjugationWordV8];
- modal('活用查询',`<div class="controls"><select class="select" aria-label="活用词类" data-change="conjugation-kind">${groups.map(x=>`<option value="${x.id}" ${x.id===group.id?'selected':''}>${x.title}</option>`).join('')}</select><select class="select" aria-label="活用词例" data-change="conjugation-word">${group.entries.map((x,i)=>`<option value="${i}" ${i===conjugationWordV8?'selected':''}>${esc(x.title)}</option>`).join('')}</select></div><div class="conjugation-headword"><div class="form-jp">${jp(word.title,word.ruby)}</div><div class="translation">${esc(word.titleZh||'')}</div>${romajiLineV10(word.titleRomaji||'')}</div><div class="reference-forms conjugation-forms">${word.forms.map(f=>`<div class="reference-form"><div class="form-label">${esc(f.label)}</div><div class="form-jp">${jp(f.ja,f.ruby)}</div><div class="translation form-meaning">${esc(f.zh)}</div>${romajiLineV10(f)}<div class="form-audio">${voiceButton(f,f.id,'form-listen','听','sentence')}</div></div>`).join('')}</div>`);
+ modal('活用查询',`<div class="controls"><select class="select" aria-label="活用词类" data-change="conjugation-kind">${groups.map(x=>`<option value="${x.id}" ${x.id===group.id?'selected':''}>${x.title}</option>`).join('')}</select><select class="select" aria-label="活用词例" data-change="conjugation-word">${group.entries.map((x,i)=>`<option value="${i}" ${i===conjugationWordV8?'selected':''}>${esc(x.title)}</option>`).join('')}</select></div><div class="conjugation-headword"><div class="form-jp">${jp(word.title,word.ruby)}</div><div class="translation">${esc(word.titleZh||'')}</div>${romajiLineV10(word.titleRomaji||'')}</div><div class="reference-forms conjugation-forms">${word.forms.map(f=>`<div class="reference-form"><div class="form-label">${esc(f.label)}</div><div class="form-jp">${jp(f.ja,f.ruby)}</div><div class="translation form-meaning">${esc(f.zh)}</div>${romajiLineV10(f)}<div class="form-audio">${voiceButton(f,f.id,'form-listen','听','sentence')}<span class="bookmark-actions">${button('收藏','save-reading-sentence',`data-sentence-id="${f.id}"`,'text-button')}${noteActionV9('sentence',f.id)}</span></div></div>`).join('')}</div>`);
 }
 const lessonHasWordV8=(w,id)=>w.lesson===Number(id)||(w.lessons||[]).includes(Number(id));
 function rememberDetailsV8(){if(shownRouteV8)detailStatesV8.set(shownRouteV8,[...document.querySelectorAll('#main details')].filter(e=>e.open).map((e,i)=>e.dataset.detailKey||e.querySelector('summary')?.textContent+'|'+[...document.querySelectorAll('#main details')].indexOf(e)))}
@@ -48,17 +48,18 @@ function renderV8(){
  if(r==='lab')r='grammar';if(r==='cards'){r='vocabulary';a=a||'cards'}if(r==='vocabulary'&&['saved','wrong'].includes(a))r='notebook';
  let focusedKana='';if(r==='kana'&&a&&hash!==old){try{focusedKana=decodeURIComponent(a)}catch{}if(voiced.some(k=>k.hira===focusedKana))kanaGroup='voiced';else if(yon.some(k=>k.hira===focusedKana))kanaGroup='yoon';else kanaGroup='basic'}
  nav(r);activeExamples=[];
- const views={lessons:courses,lesson:()=>lessonView(a,b,c,d),kana:kanaView,grammar:()=>grammarViewV8(a,b),vocabulary:()=>vocabularyViewV8(a,b),notebook:notebookViewV9};
+ const views={lessons:courses,lesson:()=>lessonView(a,b,c,d),kana:kanaView,grammar:()=>grammarViewV8(a,b),vocabulary:()=>vocabularyViewV8(a,b),exam:()=>examViewV29(a,b),notebook:notebookViewV9};
+ closeNotePanelV29(false);
  $('#main').innerHTML=(views[r]||courses)()+`<footer class="page-footer">${button('回到顶端 ↑','back-top','','text-button')}</footer>`;
  if(r==='lesson'&&b==='reading'){const board=document.querySelector('.course-switchboard');for(const selector of ['.reading-controls','.reading-picker']){const part=document.querySelector(selector);if(board&&part)board.append(part)}}
  const openDetails=detailStatesV8.get(hash)||[];document.querySelectorAll('#main details').forEach((e,i)=>{if(openDetails.includes(e.dataset.detailKey||e.querySelector('summary')?.textContent+'|'+i))e.open=true});
- furiState();window.OfficialVoice?.sync();shownRouteV8=hash;if(focusedKana)requestAnimationFrame(()=>kanaCard(focusedKana));
+ syncStickyHeadersV29();furiState();window.OfficialVoice?.sync();shownRouteV8=hash;if(focusedKana)requestAnimationFrame(()=>kanaCard(focusedKana));
  const pending=pendingNavigationV8;pendingNavigationV8=null;
  let y=pending&&pending.hash===hash?pending.y:null;
  if(y===null)y=hash===old?oldY:(positionsV8.get(hash)??0);
  if(pending?.anchor){const el=document.querySelector(pending.anchor.selector);if(el){const board=el.closest('.grammar-switchboard,.learning-switchboard'),position=board?.style.position;if(board)board.style.position='relative';y=scrollY+el.getBoundingClientRect().top-pending.anchor.top;if(board)board.style.position=position}}
  window.scrollTo({top:Math.max(0,y),behavior:'instant'});
- const focusedSentence=/\/sentence\/([^/]+)$/.exec(hash);if(focusedSentence&&hash!==old){const target=document.querySelector('[data-source-sentence="'+CSS.escape(focusedSentence[1])+'"]'),board=document.querySelector('.learning-switchboard,.grammar-switchboard');if(target)window.scrollTo({top:Math.max(0,scrollY+target.getBoundingClientRect().top-(board?.getBoundingClientRect().height||0)-18),behavior:'instant'})}
+ const focusedSentence=/\/sentence\/([^/]+)$/.exec(hash);if(focusedSentence&&hash!==old){const target=document.querySelector('[data-source-sentence="'+CSS.escape(focusedSentence[1])+'"]'),board=document.querySelector('.learning-switchboard,.grammar-switchboard');if(target)window.scrollTo({top:Math.max(0,scrollY+target.getBoundingClientRect().top-(board?.getBoundingClientRect().height||0)-(document.querySelector('.site-header')?.getBoundingClientRect().height||0)-18),behavior:'instant'})}
 
 }
 
@@ -70,35 +71,33 @@ function vocabularyTabsV8(active){return `<div class="tabs vocabulary-tabs">${[[
 function vocabularyViewV8(mode,id){
  if(mode==='saved'||mode==='wrong')return notebookViewV9();
  if(mode==='cards'||mode==='lesson')return reviewViewV8(mode==='lesson'?id:null);
- if(mode==='word'&&byWord(id)){const w=byWord(id);S.vocabularyLesson=w.lesson?String(w.lesson):'supplement';S.vocabularyPage=0;vocabularyQueryV8='';vocabularyPosV8='all'}
+ if(mode==='word'&&byWord(id)){const w=byWord(id);S.vocabularyLesson=w.lesson?String(w.lesson):'supplement';S.vocabularyPage=0;vocabularyPosV8='all'}
  const words=mode==='word'&&byWord(id)?[byWord(id)]:filteredVocabularyV8();
- return `${vocabularySwitchboardV9('')}<div class="search-line"><input class="search" type="search" id="vocabulary-search" aria-label="查找本册语汇" placeholder="日语、读音或中文" value="${esc(vocabularyQueryV8)}"></div><div id="vocabulary-results">${wordList(words,S.vocabularyPage||0)}</div>`;
+ return `${vocabularySwitchboardV9('')}<div id="vocabulary-results">${wordList(words,S.vocabularyPage||0)}</div>`;
 }
 function filteredVocabularyV8(){
- const q=norm(vocabularyQueryV8).toLowerCase();return D.vocab.filter(w=>(S.vocabularyLesson==='supplement'?w.lesson===0:Number(S.vocabularyLesson)>0?lessonHasWordV8(w,S.vocabularyLesson):true)&&(!q||norm(w.search||w.word+' '+w.kana+' '+w.meaning).toLowerCase().includes(q))&&(vocabularyPosV8==='all'||(vocabularyPosV8==='数'?/数|量词|计数/.test(w.pos):vocabularyPosV8==='動'?/[动動]|[自他][五一サカ]/.test(w.pos):vocabularyPosV8==='形'?/[形]/.test(w.pos):w.pos.includes(vocabularyPosV8))));
+ return D.vocab.filter(w=>(S.vocabularyLesson==='supplement'?w.lesson===0:Number(S.vocabularyLesson)>0?lessonHasWordV8(w,S.vocabularyLesson):true)&&(vocabularyPosV8==='all'||(vocabularyPosV8==='数'?/数|量词|计数/.test(w.pos):vocabularyPosV8==='動'?/[动動]|[自他][五一サカ]/.test(w.pos):vocabularyPosV8==='形'?/[形]/.test(w.pos):w.pos.includes(vocabularyPosV8))));
 }
-function reviewViewV8(lessonId){if(lessonId)S.vocabularyLesson=String(lessonId);const words=filteredVocabularyV8().filter(w=>!S.cards[w.id]||S.cards[w.id].due<=Date.now());window.reviewWords=words;if(reviewIndex>=words.length)reviewIndex=0;const w=words[reviewIndex];return `${vocabularySwitchboardV9('cards')}<div class="review-top"><span>${Number(S.vocabularyLesson)>0?'第'+S.vocabularyLesson+'课':S.vocabularyLesson==='supplement'?'补充语汇':'全书'}</span><span>${words.length} 词待复习</span></div>${w?`<article class="flashcard"><div class="word">${jp(w.word,w.ruby)}</div><div class="translation">${esc(w.meaning)}</div>${romajiLineV10(w)}<div class="pos">${esc(w.pos)}</div></article><div class="sentence-actions">${voiceButton(w,window.OfficialVoice?.wordId(w.id),'','听')}${button('收藏','save-word',`data-id="${w.id}"`)}</div><div class="review-actions">${button('再看','review-word',`data-id="${w.id}" data-result="again"`)}${button('认识','review-word',`data-id="${w.id}" data-result="good"`,'know')}</div>`:'<div class="empty">本轮已完成</div>'}`}
+function reviewViewV8(lessonId){if(lessonId)S.vocabularyLesson=String(lessonId);const words=filteredVocabularyV8().filter(w=>!S.cards[w.id]||S.cards[w.id].due<=Date.now());window.reviewWords=words;if(reviewIndex>=words.length)reviewIndex=0;const w=words[reviewIndex];return `${vocabularySwitchboardV9('cards')}<div class="review-top"><span>${Number(S.vocabularyLesson)>0?'第'+S.vocabularyLesson+'课':S.vocabularyLesson==='supplement'?'补充语汇':'全书'}</span><span>${words.length} 词待复习</span></div>${w?`<article class="flashcard"><div class="word">${jp(w.word,w.ruby)}</div><div class="translation">${esc(w.meaning)}</div>${romajiLineV10(w)}<div class="pos">${esc(w.pos)}</div></article><div class="sentence-actions">${voiceButton(w,window.OfficialVoice?.wordId(w.id),'','听')}<span class="bookmark-actions">${button('收藏','save-word',`data-id="${w.id}"`)}${noteActionV9('word',w.id)}</span></div><div class="review-actions">${button('再看','review-word',`data-id="${w.id}" data-result="again"`)}${button('认识','review-word',`data-id="${w.id}" data-result="good"`,'know')}</div>`:'<div class="empty">本轮已完成</div>'}`}
 
 function grammarViewV8(category,id){
  const R=window.STUDY_REFERENCE;if(!R)return '<p>语法资料载入中。</p>';
  if(!category&&S.grammarLocation){category=S.grammarLocation.category;id=S.grammarLocation.entry}
  const cat=R.categories.find(x=>x.id===category);
  if(cat){const entry=cat.entries.find(e=>e.id===id)||cat.entries.find(e=>e.id===S.grammarEntries?.[cat.id])||cat.entries[0];return grammarEntryViewV8(cat,entry)}
- return grammarSwitchesV9(null)+`<div class="search-line"><input class="search" type="search" id="grammar-search" aria-label="查找语法" placeholder="数词、活用、助词或句型" value="${esc(grammarQueryV8)}"></div><div id="grammar-results">${grammarIndexV8(R.categories,grammarQueryV8)}</div>`;
+ return grammarSwitchesV9(null)+`<div id="grammar-results">${grammarIndexV8(R.categories)}</div>`;
 }
 function grammarSwitchesV9(cat,entry){
  const R=window.STUDY_REFERENCE;
  return `<div class="grammar-switchboard"><div class="grammar-top"><div class="grammar-heading"><h1>语法</h1>${button('活用查询','verb-table','','text-button')}</div><select class="select module-select" data-change="reference-category" aria-label="语法模块"><option value="all">全部模块</option>${R.categories.map(c=>`<option value="${c.id}" ${c.id===cat?.id?'selected':''}>${esc(c.title)}</option>`).join('')}</select></div>${entry?`<div class="point-nav reference-picker"><select class="select" data-change="reference-entry" data-category="${cat.id}" aria-label="语法条目">${cat.entries.map(e=>`<option value="${e.id}" ${e.id===entry.id?'selected':''}>${esc(e.title)}</option>`).join('')}</select><span class="quiet">${cat.entries.indexOf(entry)+1} / ${cat.entries.length}</span></div>`:''}</div>`;
 }
-function grammarIndexV8(categories,query=''){
- const q=norm(query).toLowerCase();
- if(q)return categories.flatMap(c=>c.entries.filter(e=>norm([e.title,e.summary,e.formula,e.search,...(e.notes||[]),...(e.forms||[]).flatMap(x=>[x.ja,x.kana,x.zh,x.romaji]),...(e.examples||[]).flatMap(x=>[x.ja,x.kana,x.zh,x.romaji])].filter(Boolean).join(' ')).toLowerCase().includes(q)).map(e=>`<a class="reference-row" href="#grammar/${c.id}/${e.id}"><span>${mixedJapaneseV18(e.title,e.titleRuby)}</span><small>${esc(c.title)}</small></a>`)).join('')||'<div class="empty">未找到</div>';
+function grammarIndexV8(categories){
  return `<div class="grammar-modules">${categories.map(c=>`<a class="grammar-module" href="#grammar/${c.id}/${S.grammarEntries?.[c.id]||c.entries[0].id}"><span>${esc(c.title)}</span><small>${c.entries.length} 条</small></a>`).join('')}</div>`;
 }
 function grammarEntryViewV8(cat,e){
  const i=cat.entries.findIndex(x=>x.id===e.id);S.grammarEntries??={};S.grammarEntries[cat.id]=e.id;S.grammarLocation={category:cat.id,entry:e.id};save();
  const source={book:window.BOOK_ID,area:'语法',label:'语法 · '+cat.title+' · '+e.title,title:e.title,route:'grammar/'+cat.id+'/'+e.id};
- return grammarSwitchesV9(cat,e)+`<div class="reference-title-line"><h2 class="reference-title">${mixedJapaneseV18(e.title,e.titleRuby)}</h2>${button('收藏','save-reference',`data-category="${cat.id}" data-id="${e.id}"`,'text-button')}</div>${e.formula?`<div class="formula">${mixedJapaneseV18(e.formula,e.formulaRuby,'formula')}</div>`:''}<p class="explanation">${studyProseV18(e.summary)}</p>${romajiLineV10(e.formulaRomaji||'','formula-romaji')}${(e.notes||[]).map(n=>n===byLesson(e.lesson)?.grammar[e.point||0]?.commonMistake?`<section class="learning-section"><h3>易错点</h3><p>${studyProseV18(n)}</p></section>`:`<p class="reference-note">${studyProseV18(n)}</p>`).join('')}${e.forms?.length?`<div class="reference-forms">${e.forms.map(f=>`<div class="reference-form"><div class="form-label">${esc(f.label||'')}</div><div class="form-jp">${jp(f.ja,f.ruby)}</div><div class="translation form-meaning">${esc(f.zh||'')}</div>${romajiLineV10(f)}<div class="form-audio">${voiceButton(f,f.id,'form-listen','听','sentence')}</div>${f.note?`<p class="form-note">${studyProseV18(f.note)}</p>`:''}</div>`).join('')}</div>`:''}${(e.examples||[]).map((x,j)=>sentence(x,j)).join('')}${e.lesson?`<p class="source-caption"><a href="#lesson/${e.lesson}/notes/${e.point||0}">第${e.lesson}课 · ${esc(e.title)}</a></p>`:''}${noteEditorV9('reference',e.id,source)}<div class="pager reference-pager">${i>0?`<a href="#grammar/${cat.id}/${cat.entries[i-1].id}">← 上一节</a>`:'<span></span>'}${i+1<cat.entries.length?`<a href="#grammar/${cat.id}/${cat.entries[i+1].id}">下一节 →</a>`:'<span></span>'}</div>`;
+ return grammarSwitchesV9(cat,e)+`<div class="reference-title-line"><h2 class="reference-title">${mixedJapaneseV18(e.title,e.titleRuby)}</h2><span class="bookmark-actions">${button('收藏','save-reference',`data-category="${cat.id}" data-id="${e.id}"`,'text-button')}${noteActionV9('reference',e.id)}</span></div>${e.formula?`<div class="formula">${mixedJapaneseV18(e.formula,e.formulaRuby,'formula')}</div>`:''}<p class="explanation">${studyProseV18(e.summary)}</p>${romajiLineV10(e.formulaRomaji||'','formula-romaji')}${(e.notes||[]).map(n=>n===byLesson(e.lesson)?.grammar[e.point||0]?.commonMistake?`<section class="learning-section"><h3>易错点</h3><p>${studyProseV18(n)}</p></section>`:`<p class="reference-note">${studyProseV18(n)}</p>`).join('')}${e.forms?.length?`<div class="reference-forms">${e.forms.map(f=>`<div class="reference-form"><div class="form-label">${esc(f.label||'')}</div><div class="form-jp">${jp(f.ja,f.ruby)}</div><div class="translation form-meaning">${esc(f.zh||'')}</div>${romajiLineV10(f)}<div class="form-audio">${voiceButton(f,f.id,'form-listen','听','sentence')}<span class="bookmark-actions">${button('收藏','save-reading-sentence',`data-sentence-id="${f.id}"`,'text-button')}${noteActionV9('sentence',f.id)}</span></div>${f.note?`<p class="form-note">${studyProseV18(f.note)}</p>`:''}</div>`).join('')}</div>`:''}${(e.examples||[]).map((x,j)=>sentence(x,j)).join('')}${e.lesson?`<p class="source-caption"><a href="#lesson/${e.lesson}/notes/${e.point||0}">第${e.lesson}课 · ${esc(e.title)}</a></p>`:''}<div class="pager reference-pager">${i>0?`<a href="#grammar/${cat.id}/${cat.entries[i-1].id}">← 上一节</a>`:'<span></span>'}${i+1<cat.entries.length?`<a href="#grammar/${cat.id}/${cat.entries[i+1].id}">下一节 →</a>`:'<span></span>'}</div>`;
 }
 function installV8Navigation(){
  history.scrollRestoration='manual';
@@ -124,8 +123,5 @@ function installV8Navigation(){
   if(e.target.dataset.change==='reference-entry')navigateV8('grammar/'+e.target.dataset.category+'/'+e.target.value,{anchor:'.reference-picker'});
   if(e.target.dataset.change==='vocabulary-pos'){vocabularyPosV8=e.target.value;S.vocabularyPage=0;reviewIndex=0;render()}
  });
- document.addEventListener('input',e=>{
-  if(e.target.id==='grammar-search'){grammarQueryV8=e.target.value;$('#grammar-results').innerHTML=grammarIndexV8(window.STUDY_REFERENCE.categories,grammarQueryV8)}
-  if(e.target.id==='vocabulary-search'){vocabularyQueryV8=e.target.value;S.vocabularyPage=0;$('#vocabulary-results').innerHTML=wordList(filteredVocabularyV8(),0)}
- });
+;
 }
