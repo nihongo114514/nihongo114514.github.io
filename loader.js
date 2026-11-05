@@ -4,14 +4,14 @@ window.BOOK_ID=new URLSearchParams(location.search).get('book')||'beginner';
 if(!window.BOOKS[window.BOOK_ID])window.BOOK_ID='beginner';
 window.BOOK_CONFIG=window.BOOKS[window.BOOK_ID];
 const bookSelect=document.querySelector('#book-select');bookSelect.value=window.BOOK_ID;
-bookSelect.addEventListener('change',()=>{location.href='./?book='+encodeURIComponent(bookSelect.value)+'#lessons'});
+let bookNavigationV9=0;bookSelect.addEventListener('change',()=>{const token=++bookNavigationV9,target='./?book='+encodeURIComponent(bookSelect.value)+(location.hash.startsWith('#notebook')?'#notebook':'#lessons'),leave=()=>{if(token===bookNavigationV9)location.href=target};if(matchMedia('(prefers-reduced-motion: reduce)').matches){leave();return}document.querySelector('#main').animate([{opacity:1},{opacity:0}],{duration:100,easing:'ease-out',fill:'forwards'}).finished.then(leave).catch(leave)});
 document.title='新世纪日本语教程 · '+window.BOOK_CONFIG.label;
 function script(src){return new Promise((resolve,reject)=>{const el=document.createElement('script');el.src=src;el.onload=resolve;el.onerror=reject;document.head.append(el)})}
 async function bookData(){
  if('DecompressionStream' in window){
   try{
    const values=await Promise.all(['data','audio','reference','audio-extra'].map(async kind=>{
-    const response=await fetch('books/'+window.BOOK_ID+'/'+kind+'.json.gz?v=9');
+    const response=await fetch('books/'+window.BOOK_ID+'/'+kind+'.json.gz?v=11');
     if(!response.ok||!response.body)throw Error('Data unavailable');
     return new Response(response.body.pipeThrough(new DecompressionStream('gzip'))).json();
    }));
@@ -22,13 +22,13 @@ async function bookData(){
    return true;
   }catch{}
  }
- for(const kind of ['data','audio','reference','audio-extra'])await script('books/'+window.BOOK_ID+'/'+kind+'.js?v=9');
+ for(const kind of ['data','audio','reference','audio-extra'])await script('books/'+window.BOOK_ID+'/'+kind+'.js?v=11');
  return false;
 }
 (async()=>{try{
  document.querySelector('#main').innerHTML='<p class="quiet" role="status">载入中…</p>';
  const compressed=await bookData();
- for(const src of ['voice.js?v=9','reference-ui.js?v=9','app.js?v=9'])await script(src);
+ for(const src of ['voice.js?v=11','reference-ui.js?v=11','reading-support.js?v=11','notebook.js?v=11','app.js?v=11'])await script(src);
  if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){
   const message={type:'CACHE_BOOK',book:window.BOOK_ID,compressed};
   navigator.serviceWorker.ready.then(r=>r.active?.postMessage(message)).catch(()=>{});
