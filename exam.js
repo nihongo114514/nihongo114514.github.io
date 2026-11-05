@@ -12,7 +12,7 @@ function examUnitsV29(q,book=window.BOOK_ID){if(q.units)return q.units;const dat
 function examJaOptionV29(q){return q.kind==='curated'?q.section==='grammar':!['word-meaning','word-listen','sentence-meaning','sentence-listen'].includes(q.kind)}
 function examPromptBodyV29(q,book=window.BOOK_ID,review=false){
  const w=examWordV29(q,book),units=examUnitsV29(q,book),listening=q.section==='listening';let out='';
- if(listening&&!review)return `<div class="exam-audio">${notebookListenV9(book,q.audioId,q.audioId)}</div>`;
+ if(listening&&!review)return `<div class="exam-audio">${notebookListenV9(book,q.audioId,q.audioId)}</div>${q.cue?`<p class="exam-cue">${esc(q.cue)}</p>`:""}`;
  if(q.kind==='word-reading'&&w)out=`<p class="exam-word" lang="ja">${esc(w.word)}</p>`;
  else if(q.kind==='word-writing'&&w)out=`<p class="exam-word" lang="ja">${esc(w.kana)}</p>`;
  else if(q.kind==='word-meaning'&&w)out=`<p class="exam-word">${jp(w.word,w.ruby)}</p>`;
@@ -36,7 +36,7 @@ function examPaperHTMLV29(paper){let number=0;return `${paper.submitted?examSumm
 function examSummaryV29(paper){const total=paper.questions.length,right=paper.questions.filter(q=>ExamEngineV29.correct(q,paper.answers[q.id])).length,unanswered=paper.questions.filter(q=>!ExamEngineV29.answered(q,paper.answers[q.id])).length;return `<section class="exam-summary"><h2>答对 ${right} / ${total}</h2><p class="quiet">未答 ${unanswered}题</p><div class="exam-breakdown">${ExamEngineV29.sections.map(s=>{const qs=paper.questions.filter(q=>q.section===s);return qs.length?`<span>${EXAM_SECTIONS_V29[s]} ${qs.filter(q=>ExamEngineV29.correct(q,paper.answers[q.id])).length}/${qs.length}</span>`:''}).join('')}</div><div class="actions">${button('整卷','exam-filter','data-filter="all"',examFilterV29==='all'?'active text-button':'text-button')}${button('只看待巩固','exam-filter','data-filter="wrong"',examFilterV29==='wrong'?'active text-button':'text-button')}</div></section>`}
 function examViewV29(mode,id){
  if(mode==='q'&&id){id=decodeURIComponent(id);const q=S.examPaper?.questions.find(q=>q.id===id)||S.examItems?.[id]||S.wrong.find(x=>x.type==='exam'&&x.id===id)?.exam;if(q)return examBoardV29()+`<article class="exam-question"><h2>${esc(q.prompt)}</h2>${examPromptBodyV29(q,window.BOOK_ID,true)}${examReviewHTMLV29(q)}${examQuestionActionsV29(q)}</article>`}
- const bank=getExamBankV29(),paper=S.examPaper?.version===29?S.examPaper:null,c=examSettingsV29(),count=ExamEngineV29.eligible(bank,c.from,c.to,c.supplement).length;
+ const bank=getExamBankV29(),paper=S.examPaper?.version===35?S.examPaper:null,c=examSettingsV29(),count=ExamEngineV29.eligible(bank,c.from,c.to,c.supplement).length;
  return examBoardV29(paper)+(paper?examPaperHTMLV29(paper):`<section class="exam-intro"><p class="quiet">本册 ${bank.items.length.toLocaleString()}道训练题 · 当前范围 ${count.toLocaleString()}道</p>${examConfigHTMLV29()}</section>`);
 }
 function examSnapshotV29(q){return {...q,units:examUnitsV29(q),wordSnapshot:examWordV29(q)}}
@@ -54,6 +54,7 @@ document.addEventListener('submit',event=>{
 });
 function recordExamAnswerV29(t){if(!t.dataset.examAnswer||!S.examPaper||S.examPaper.submitted)return;S.examPaper.answers[t.dataset.examAnswer]=t.value;save();updateExamProgressV29()}
 document.addEventListener('input',e=>recordExamAnswerV29(e.target));document.addEventListener('change',e=>recordExamAnswerV29(e.target));
+document.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.isComposing&&event.target.matches('#exam-paper input'))event.preventDefault()});
 document.addEventListener('click',event=>{
  const t=event.target.closest('[data-action]');if(!t)return;const act=t.dataset.action,q=examFindV29(t.dataset.questionId);
  if(act==='exam-config')modal('重新组卷',examConfigHTMLV29());
