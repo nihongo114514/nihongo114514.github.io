@@ -303,7 +303,7 @@ function legacySourceV9(book,item,data){
  for(const cat of notebookReferencesV9.get(book)?.categories||[])for(const e of cat.entries)if(e.examples?.some(x=>x.id===ex?.id||x.ja===item.ja)){const x=e.examples.find(x=>x.id===ex?.id||x.ja===item.ja);return {book,area:'语法',label:'语法 · '+cat.title+' · '+e.title,route:'grammar/'+cat.id+'/'+e.id+'/sentence/'+x.id,title:item.ja||x.ja}}
  return {book,area:'课程',label:'课程',route:'lessons',title:item.ja||'收藏'};
 }
-async function fetchBookJSONV9(book,kind){if('DecompressionStream'in window){const resource='books/'+book+'/'+kind+'.json.gz',result=await verifiedResourceV13(resource+'?v=35',BOOK_BACKUP_V13+resource,BOOK_HASHES_V13[resource]);return new Response(result.bytes).json()}const text=await(await fetch('books/'+book+'/'+kind+'.js?v=35')).text();return JSON.parse(kind==='audio-extra'?text.split('const x=')[1].split(';window.STUDY_AUDIO.tracks=')[0]:text.slice(text.indexOf('=')+1).replace(/;\s*$/,''))}
+async function fetchBookJSONV9(book,kind){if('DecompressionStream'in window){const resource='books/'+book+'/'+kind+'.json.gz',result=await verifiedResourceV13(resource+'?v=36',BOOK_BACKUP_V13+resource,BOOK_HASHES_V13[resource]);return new Response(result.bytes).json()}const text=await(await fetch('books/'+book+'/'+kind+'.js?v=36')).text();return JSON.parse(kind==='audio-extra'?text.split('const x=')[1].split(';window.STUDY_AUDIO.tracks=')[0]:text.slice(text.indexOf('=')+1).replace(/;\s*$/,''))}
 function ensureNotebookBookV9(book){
  if(book===window.BOOK_ID){notebookBooksV9.set(book,D);notebookReferencesV9.set(book,window.STUDY_REFERENCE);return}
  if(notebookLoadingV9.has(book))return;
@@ -425,7 +425,8 @@ const ExamEngineV29=(()=>{
  const shortMeaning=w=>String(w.meaning||'').split('；').slice(0,2).join('；');
  function gapReadingV35(u,a,b){let p=0,out='';for(const n of u.ruby||[]){const z=p+n.text.length,l=Math.max(a,p),r=Math.min(b,z);if(l<r){if(n.reading&&(l!==p||r!==z))return '';out+=n.reading||n.text.slice(l-p,r-p)}p=z}return out}
  function acceptedWordV35(w){const xs=[w.word,w.kana,...(w.acceptedAliasesV35||[]),...({'明日':['あした','あす','みょうにち'],'その後':['そのあと','そのご'],'30歳':['さんじっさい','さんじゅっさい'],'くらい':['ぐらい'],'ぐらい':['くらい']}[w.word]||[])];if(w.word==='聞く'&&/听/.test(w.meaning))xs.push('聴く');return [...new Set(xs)]}
- function numericV35(s){return s.replace(/[一二三四五六七八九十百千〇零]+(?=[年歳才時分秒人回本冊枚個日月週間])/g,x=>{const digits={'〇':0,'零':0,'一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9},factors={'十':10,'百':100,'千':1000};let sum=0,n=0;if(!/[十百千]/.test(x))return [...x].map(c=>digits[c]).join('');for(const c of x)if(c in digits)n=digits[c];else{sum+=(n||1)*factors[c];n=0}return String(sum+n)})}
+ function numericV35(s){return s.replace(/[0-9〇零一二三四五六七八九十百千万億兆]+(?=[年歳才時分秒人回本冊枚個日月週間円]|$)/g,x=>{const digits={'〇':0,'零':0,'一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9},small={'十':10,'百':100,'千':1000},large={'万':1e4,'億':1e8,'兆':1e12};if(!/[十百千万億兆]/.test(x))return [...x].map(c=>digits[c]??c).join('');let total=0,group=0,n=0;for(const c of x)if(c in digits||/[0-9]/.test(c))n=n*10+Number(digits[c]??c);else if(c in small){group+=(n||1)*small[c];n=0}else{total+=(group+n||1)*large[c];group=0;n=0}return String(total+group+n)})}
+
  function build(data,reference,audio,book,curated=[],extraKana=[]){
   const units=new Map(),words=new Map(data.vocab.map(w=>[w.id,w])),items=[],seen=new Set();
   const add=q=>{if(!seen.has(q.id)){seen.add(q.id);items.push(q)}};
@@ -765,6 +766,6 @@ document.addEventListener('input',e=>{const t=e.target;if(t.dataset.note){S.note
 function setupCanvas(id='writing'){const canvas=document.getElementById(id),ctx=canvas.getContext('2d');let down=false;ctx.lineWidth=7;ctx.lineCap='round';ctx.strokeStyle='#355b70';const pos=e=>{const b=canvas.getBoundingClientRect();return [(e.clientX-b.left)*canvas.width/b.width,(e.clientY-b.top)*canvas.height/b.height]};canvas.addEventListener('pointerdown',e=>{down=true;canvas.setPointerCapture(e.pointerId);ctx.beginPath();ctx.moveTo(...pos(e))});canvas.addEventListener('pointermove',e=>{if(down){ctx.lineTo(...pos(e));ctx.stroke()}});canvas.addEventListener('pointerup',()=>down=false);canvas.addEventListener('pointercancel',()=>down=false)}
 $('#dialog').addEventListener('click',e=>{if(e.target===$('#dialog'))closeModalV9()});$('#dialog').addEventListener('cancel',e=>{e.preventDefault();closeModalV9()});window.addEventListener('hashchange',()=>{if($('#dialog').open)$('#dialog').close();activeExamples=[];render()});document.addEventListener('keydown',e=>{if($('#dialog').open||['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName))return;if(e.key==='ArrowRight'||e.key==='ArrowLeft'){const next=$(`.reading-pager button:${e.key==='ArrowRight'?'last-child':'first-child'}`)||$(`.pager button[data-action="course-step"]:${e.key==='ArrowRight'?'last-child':'first-child'}`);if(next&&!next.disabled){e.preventDefault();next.click()}}});
 installV8Navigation();
-if('serviceWorker'in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register('./sw.js?v=35').catch(()=>{});render();
+if('serviceWorker'in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register('./sw.js?v=36').catch(()=>{});render();
 
 document.addEventListener('official-audio-error',e=>toast(e.detail));

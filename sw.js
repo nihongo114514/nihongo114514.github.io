@@ -1,5 +1,5 @@
-const SHELL='nihongo-series-shell-v35',AUDIO='nihongo-audio-original-v1';
-const ASSETS=["./","./index.html","./loader.js?v=35","./icon.svg","./manifest.webmanifest"];
+const SHELL='nihongo-series-shell-v36',AUDIO='nihongo-audio-original-v1';
+const ASSETS=["./","./index.html","./loader.js?v=36","./icon.svg","./manifest.webmanifest"];
 const BOOK_BACKUP_V13="https://raw.githubusercontent.com/nihongo114514/nihongo114514.github.io/6bbba7ece35a5bdcd91274b100c0175130b62bdb/";
 const pendingAudio=new Map();
 self.addEventListener('install',event=>event.waitUntil(self.skipWaiting()));
@@ -27,7 +27,7 @@ async function cacheAudio(url){
  const u=new URL(url,self.location.href);u.hash='';if(u.origin!==self.location.origin||!u.pathname.includes('/audio/')||!u.pathname.endsWith('.mp3'))return;
  try{await wholeAudio(u.href)}catch{}
 }
-self.addEventListener('message',event=>{if(event.data?.type==='CACHE_SHELL')event.waitUntil(caches.open(SHELL).then(cache=>Promise.allSettled(ASSETS.map(url=>cache.add(url)))));if(event.data?.type==='CACHE_AUDIO')event.waitUntil(cacheAudio(event.data.url));if(event.data?.type==='CACHE_BOOK'&&['beginner','intermediate','advanced'].includes(event.data.book)){const b=event.data.book,suffix=event.data.compressed?'.json.gz?v=35':'.js?v=35';event.waitUntil(caches.open(SHELL).then(cache=>Promise.allSettled(['data','audio','reference','audio-extra'].flatMap(kind=>['./books/'+b+'/'+kind+suffix,BOOK_BACKUP_V13+'books/'+b+'/'+kind+(event.data.compressed?'.json.gz':'.js')]).map(url=>cache.add(url)))))}});
+self.addEventListener('message',event=>{if(event.data?.type==='CACHE_SHELL')event.waitUntil(caches.open(SHELL).then(cache=>Promise.allSettled(ASSETS.map(url=>cache.add(url)))));if(event.data?.type==='CACHE_AUDIO')event.waitUntil(cacheAudio(event.data.url));if(event.data?.type==='CACHE_BOOK'&&['beginner','intermediate','advanced'].includes(event.data.book)){const b=event.data.book,suffix=event.data.compressed?'.json.gz?v=36':'.js?v=36';event.waitUntil(caches.open(SHELL).then(cache=>Promise.allSettled(['data','audio','reference','audio-extra'].flatMap(kind=>['./books/'+b+'/'+kind+suffix,BOOK_BACKUP_V13+'books/'+b+'/'+kind+(event.data.compressed?'.json.gz':'.js')]).map(url=>cache.add(url)))))}});
 async function audioResponse(request,url){
  const saved=await wholeAudio(url.href);
  const range=request.headers.get('range');if(!range)return saved;

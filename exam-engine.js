@@ -8,7 +8,8 @@ const ExamEngineV29=(()=>{
  const shortMeaning=w=>String(w.meaning||'').split('；').slice(0,2).join('；');
  function gapReadingV35(u,a,b){let p=0,out='';for(const n of u.ruby||[]){const z=p+n.text.length,l=Math.max(a,p),r=Math.min(b,z);if(l<r){if(n.reading&&(l!==p||r!==z))return '';out+=n.reading||n.text.slice(l-p,r-p)}p=z}return out}
  function acceptedWordV35(w){const xs=[w.word,w.kana,...(w.acceptedAliasesV35||[]),...({'明日':['あした','あす','みょうにち'],'その後':['そのあと','そのご'],'30歳':['さんじっさい','さんじゅっさい'],'くらい':['ぐらい'],'ぐらい':['くらい']}[w.word]||[])];if(w.word==='聞く'&&/听/.test(w.meaning))xs.push('聴く');return [...new Set(xs)]}
- function numericV35(s){return s.replace(/[一二三四五六七八九十百千〇零]+(?=[年歳才時分秒人回本冊枚個日月週間])/g,x=>{const digits={'〇':0,'零':0,'一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9},factors={'十':10,'百':100,'千':1000};let sum=0,n=0;if(!/[十百千]/.test(x))return [...x].map(c=>digits[c]).join('');for(const c of x)if(c in digits)n=digits[c];else{sum+=(n||1)*factors[c];n=0}return String(sum+n)})}
+ function numericV35(s){return s.replace(/[0-9〇零一二三四五六七八九十百千万億兆]+(?=[年歳才時分秒人回本冊枚個日月週間円]|$)/g,x=>{const digits={'〇':0,'零':0,'一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9},small={'十':10,'百':100,'千':1000},large={'万':1e4,'億':1e8,'兆':1e12};if(!/[十百千万億兆]/.test(x))return [...x].map(c=>digits[c]??c).join('');let total=0,group=0,n=0;for(const c of x)if(c in digits||/[0-9]/.test(c))n=n*10+Number(digits[c]??c);else if(c in small){group+=(n||1)*small[c];n=0}else{total+=(group+n||1)*large[c];group=0;n=0}return String(total+group+n)})}
+
  function build(data,reference,audio,book,curated=[],extraKana=[]){
   const units=new Map(),words=new Map(data.vocab.map(w=>[w.id,w])),items=[],seen=new Set();
   const add=q=>{if(!seen.has(q.id)){seen.add(q.id);items.push(q)}};
