@@ -53,7 +53,7 @@ function legacySourceV9(book,item,data){
  for(const cat of notebookReferencesV9.get(book)?.categories||[])for(const e of cat.entries)if(e.examples?.some(x=>x.id===ex?.id||x.ja===item.ja)){const x=e.examples.find(x=>x.id===ex?.id||x.ja===item.ja);return {book,area:'语法',label:'语法 · '+cat.title+' · '+e.title,route:'grammar/'+cat.id+'/'+e.id+'/sentence/'+x.id,title:item.ja||x.ja}}
  return {book,area:'课程',label:'课程',route:'lessons',title:item.ja||'收藏'};
 }
-async function fetchBookJSONV9(book,kind){const path='books/'+book+'/'+kind+'.json.gz?v=11';const r=await fetch(path);if(!r.ok)throw Error('资料未能载入');if('DecompressionStream'in window)return new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).json();const text=await(await fetch('books/'+book+'/'+kind+'.js?v=11')).text();return JSON.parse(kind==='audio-extra'?text.split('const x=')[1].split(';window.STUDY_AUDIO.tracks=')[0]:text.slice(text.indexOf('=')+1).replace(/;\s*$/,''))}
+async function fetchBookJSONV9(book,kind){const path='books/'+book+'/'+kind+'.json.gz?v=12';const r=await fetch(path);if(!r.ok)throw Error('资料未能载入');if('DecompressionStream'in window)return new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).json();const text=await(await fetch('books/'+book+'/'+kind+'.js?v=12')).text();return JSON.parse(kind==='audio-extra'?text.split('const x=')[1].split(';window.STUDY_AUDIO.tracks=')[0]:text.slice(text.indexOf('=')+1).replace(/;\s*$/,''))}
 function ensureNotebookBookV9(book){
  if(book===window.BOOK_ID){notebookBooksV9.set(book,D);notebookReferencesV9.set(book,window.STUDY_REFERENCE);return}
  if(notebookLoadingV9.has(book))return;

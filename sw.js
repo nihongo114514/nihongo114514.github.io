@@ -1,5 +1,5 @@
-const SHELL='nihongo-series-shell-v11',AUDIO='nihongo-audio-original-v1';
-const ASSETS=['./','./index.html','./loader.js?v=11','./style.css?v=11','./reference-ui.js?v=11','./reading-support.js?v=11','./notebook.js?v=11','./vendor/signalsmith/signalsmith-worker.js?v=11','./vendor/signalsmith/signalsmith-core.js','./voice.js?v=11','./app.js?v=11','./fonts/study-cjk-jp.woff2','./fonts/study-cjk-sc.woff2','./fonts/study-ipa.woff2','./icon.svg','./manifest.webmanifest'];
+const SHELL='nihongo-series-shell-v12',AUDIO='nihongo-audio-original-v1';
+const ASSETS=['./','./index.html','./loader.js?v=12','./style.css?v=12','./reference-ui.js?v=12','./reading-support.js?v=12','./notebook.js?v=12','./vendor/signalsmith/signalsmith-worker.js?v=12','./vendor/signalsmith/signalsmith-core.js','./voice.js?v=12','./app.js?v=12','./fonts/study-cjk-jp.woff2','./fonts/study-cjk-sc.woff2','./fonts/study-ipa.woff2','./icon.svg','./manifest.webmanifest'];
 const pendingAudio=new Map();
 self.addEventListener('install',event=>event.waitUntil(caches.open(SHELL).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('nihongo-')&&key!==SHELL&&key!==AUDIO).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
@@ -20,7 +20,7 @@ async function cacheAudio(url){
  const u=new URL(url,self.location.href);u.hash='';if(u.origin!==self.location.origin||!u.pathname.includes('/audio/')||!u.pathname.endsWith('.mp3'))return;
  try{await wholeAudio(u.href)}catch{}
 }
-self.addEventListener('message',event=>{if(event.data?.type==='CACHE_AUDIO')event.waitUntil(cacheAudio(event.data.url));if(event.data?.type==='CACHE_BOOK'&&['beginner','intermediate','advanced'].includes(event.data.book)){const b=event.data.book,suffix=event.data.compressed?'.json.gz?v=11':'.js?v=11';event.waitUntil(caches.open(SHELL).then(cache=>cache.addAll(['data','audio','reference','audio-extra'].map(kind=>'./books/'+b+'/'+kind+suffix))))}});
+self.addEventListener('message',event=>{if(event.data?.type==='CACHE_AUDIO')event.waitUntil(cacheAudio(event.data.url));if(event.data?.type==='CACHE_BOOK'&&['beginner','intermediate','advanced'].includes(event.data.book)){const b=event.data.book,suffix=event.data.compressed?'.json.gz?v=12':'.js?v=12';event.waitUntil(caches.open(SHELL).then(cache=>cache.addAll(['data','audio','reference','audio-extra'].map(kind=>'./books/'+b+'/'+kind+suffix))))}});
 async function audioResponse(request,url){
  const saved=await wholeAudio(url.href);
  const range=request.headers.get('range');if(!range)return saved;

@@ -11,7 +11,7 @@ async function bookData(){
  if('DecompressionStream' in window){
   try{
    const values=await Promise.all(['data','audio','reference','audio-extra'].map(async kind=>{
-    const response=await fetch('books/'+window.BOOK_ID+'/'+kind+'.json.gz?v=11');
+    const response=await fetch('books/'+window.BOOK_ID+'/'+kind+'.json.gz?v=12');
     if(!response.ok||!response.body)throw Error('Data unavailable');
     return new Response(response.body.pipeThrough(new DecompressionStream('gzip'))).json();
    }));
@@ -22,13 +22,13 @@ async function bookData(){
    return true;
   }catch{}
  }
- for(const kind of ['data','audio','reference','audio-extra'])await script('books/'+window.BOOK_ID+'/'+kind+'.js?v=11');
+ for(const kind of ['data','audio','reference','audio-extra'])await script('books/'+window.BOOK_ID+'/'+kind+'.js?v=12');
  return false;
 }
 (async()=>{try{
  document.querySelector('#main').innerHTML='<p class="quiet" role="status">载入中…</p>';
  const compressed=await bookData();
- for(const src of ['voice.js?v=11','reference-ui.js?v=11','reading-support.js?v=11','notebook.js?v=11','app.js?v=11'])await script(src);
+ for(const src of ['voice.js?v=12','reference-ui.js?v=12','reading-support.js?v=12','notebook.js?v=12','app.js?v=12'])await script(src);
  if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){
   const message={type:'CACHE_BOOK',book:window.BOOK_ID,compressed};
   navigator.serviceWorker.ready.then(r=>r.active?.postMessage(message)).catch(()=>{});
