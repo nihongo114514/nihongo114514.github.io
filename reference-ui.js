@@ -1,21 +1,15 @@
 'use strict';
-let activeStudyTransitionV9=null,namedStudyElementV9=null;
 const studyTransitionStatesV9=new WeakMap();
 function withStudyTransitionV9(update,selector='#main',immediate=false){
  const element=document.querySelector(selector);if(!element){update();return}
+ const previous=studyTransitionStatesV9.get(element),opacity=getComputedStyle(element).opacity;previous?.animation?.cancel();
  for(const animation of element.getAnimations())if(animation.id==='study-enter')animation.cancel();
- const previous=studyTransitionStatesV9.get(element);previous?.animation?.cancel();const state={revision:(previous?.revision||0)+1,animation:null};studyTransitionStatesV9.set(element,state);
- const current=()=>studyTransitionStatesV9.get(element)===state;
- if(immediate||matchMedia('(prefers-reduced-motion: reduce)').matches){update();element.dataset.transitionPhase='idle';return}
- if(document.startViewTransition){
-  activeStudyTransitionV9?.skipTransition();if(namedStudyElementV9)namedStudyElementV9.style.viewTransitionName='';namedStudyElementV9=element;element.style.viewTransitionName='study-content';element.dataset.transitionPhase='out';element.dataset.transitionEngine='native';
-  let transition;try{transition=document.startViewTransition(()=>{if(current()){update();element.dataset.transitionPhase='in'}})}catch{element.style.viewTransitionName='';update();element.dataset.transitionPhase='idle';return}activeStudyTransitionV9=transition;
-  transition.ready.catch(()=>{});transition.updateCallbackDone.catch(()=>{});transition.finished.catch(()=>{}).finally(()=>{if(current()){element.dataset.transitionPhase='idle';element.style.viewTransitionName=''}if(activeStudyTransitionV9===transition){activeStudyTransitionV9=null;namedStudyElementV9=null}});
-  return;
- }
- // Older browsers keep the same short fade without moving the page.
- element.dataset.transitionPhase='out';element.dataset.transitionEngine='fade';state.animation=element.animate([{opacity:1},{opacity:0}],{duration:80,easing:'ease-out',fill:'forwards'});
- state.animation.finished.then(()=>{if(!current())return;update();state.animation.cancel();element.dataset.transitionPhase='in';state.animation=element.animate([{opacity:0},{opacity:1}],{duration:140,easing:'ease-out'});return state.animation.finished}).then(()=>{if(current())element.dataset.transitionPhase='idle'}).catch(()=>{});
+ const state={animation:null};studyTransitionStatesV9.set(element,state);const current=()=>studyTransitionStatesV9.get(element)===state;
+ if(immediate||!element.animate||matchMedia('(prefers-reduced-motion: reduce)').matches){update();element.dataset.transitionPhase='idle';return}
+ element.dataset.transitionPhase='out';element.dataset.transitionEngine='fade';state.animation=element.animate([{opacity},{opacity:0}],{duration:75,easing:'ease-out',fill:'forwards'});
+ state.animation.finished.then(()=>{
+  if(!current())return;update();state.animation.cancel();element.dataset.transitionPhase='in';state.animation=element.animate([{opacity:0},{opacity:1}],{duration:140,easing:'ease-out'});return state.animation.finished;
+ }).then(()=>{if(current())element.dataset.transitionPhase='idle'}).catch(()=>{});
 }
 function closeModalV9(){if($('#dialog').open)withStudyTransitionV9(()=>$('#dialog').close(),'#dialog-content')}
 function alignLearningContentV9(target){const board=document.querySelector('.learning-switchboard,.grammar-switchboard');if(board&&board.getBoundingClientRect().top<=1)window.scrollTo({top:Math.max(0,scrollY+target.getBoundingClientRect().top-board.getBoundingClientRect().bottom-18),behavior:'instant'})}
@@ -31,7 +25,7 @@ function verbTableV8(index=conjugationWordV8){
 }
 const lessonHasWordV8=(w,id)=>w.lesson===Number(id)||(w.lessons||[]).includes(Number(id));
 function rememberDetailsV8(){if(shownRouteV8)detailStatesV8.set(shownRouteV8,[...document.querySelectorAll('#main details')].filter(e=>e.open).map((e,i)=>e.dataset.detailKey||e.querySelector('summary')?.textContent+'|'+[...document.querySelectorAll('#main details')].indexOf(e)))}
-function rememberPositionV8(){if(shownRouteV8)positionsV8.set(shownRouteV8,scrollY);rememberDetailsV8();if(document.querySelector('.lesson-head')){S.lastCourseY=scrollY;save()}}
+function rememberPositionV8(){if(shownRouteV8)positionsV8.set(shownRouteV8,scrollY);rememberDetailsV8()}
 function navigateV8(target,options={}){
  rememberPositionV8();const old=shownRouteV8,hash='#'+target;
  let y=Number.isFinite(options.y)?options.y:null,anchor=null;
@@ -59,7 +53,6 @@ function renderV8(){
  if(r==='lesson'&&b==='reading'){const board=document.querySelector('.course-switchboard');for(const selector of ['.reading-controls','.reading-picker']){const part=document.querySelector(selector);if(board&&part)board.append(part)}}
  const openDetails=detailStatesV8.get(hash)||[];document.querySelectorAll('#main details').forEach((e,i)=>{if(openDetails.includes(e.dataset.detailKey||e.querySelector('summary')?.textContent+'|'+i))e.open=true});
  furiState();window.OfficialVoice?.sync();shownRouteV8=hash;if(focusedKana)requestAnimationFrame(()=>kanaCard(focusedKana));
- if(r==='lesson'){S.lastCourseRoute=['lesson',a,b||'notes',c??0,d].filter(x=>x!==undefined).join('/');save()}
  const pending=pendingNavigationV8;pendingNavigationV8=null;
  let y=pending&&pending.hash===hash?pending.y:null;
  if(y===null)y=hash===old?oldY:(positionsV8.get(hash)??0);
@@ -71,21 +64,20 @@ function renderV8(){
 
 function courseSelectorV9(id='',tab='notes'){return `<select class="select section-select" aria-label="课程课次" data-change="course-lesson" data-tab="${esc(tab)}"><option value="" ${id?'':'selected'}>全部课程</option>${D.lessons.map(l=>`<option value="${l.id}" ${Number(id)===l.id?'selected':''}>第${l.id}课 · ${esc(l.title)}</option>`).join('')}</select>`}
 function kanaGroupSelectorV9(inCard=false){return `<select class="select section-select" aria-label="假名分组" data-change="${inCard?'kana-card-group':'kana-group'}">${[['basic','清音'],['voiced','浊音 · 半浊音'],['yoon','拗音']].map(([id,label])=>`<option value="${id}" ${kanaGroup===id?'selected':''}>${label}</option>`).join('')}</select>`}
-function vocabularyLessonSelectV9(){const value=String(S.vocabularyLesson||'all');return `<select class="select section-select" aria-label="语汇课次" data-change="vocabulary-lesson">${[['all','全书'],['custom',S.preset==='custom'?'自选 · 第'+S.scope.join('—')+'课':'自选范围'],...D.lessons.map(l=>[String(l.id),'第'+l.id+'课 · '+l.title]),['supplement','补充语汇']].map(([id,label])=>`<option value="${id}" ${value===id?'selected':''}>${esc(label)}</option>`).join('')}</select>`}
+function vocabularyLessonSelectV9(){const value=String(S.vocabularyLesson||'all');return `<select class="select section-select" aria-label="语汇课次" data-change="vocabulary-lesson">${[['all','全书'],...D.lessons.map(l=>[String(l.id),'第'+l.id+'课 · '+l.title]),['supplement','补充语汇']].map(([id,label])=>`<option value="${id}" ${value===id?'selected':''}>${esc(label)}</option>`).join('')}</select>`}
 function vocabularySwitchboardV9(active){return `<div class="learning-switchboard vocabulary-switchboard"><div class="switchboard-top"><h1>语汇</h1>${vocabularyLessonSelectV9()}</div><div class="switchboard-bottom">${vocabularyTabsV8(active)}<select class="select word-class-select" aria-label="语汇词类" data-change="vocabulary-pos">${[['all','全部词类'],['名','名词'],['動','动词'],['形','形容词'],['副','副词'],['助','助词与助动词'],['数','数词']].map(([id,label])=>`<option value="${id}" ${vocabularyPosV8===id?'selected':''}>${label}</option>`).join('')}</select></div></div>`}
-function returnCourseV8(){return S.lastCourseRoute?button('← 返回第'+(S.lastCourseRoute.split('/')[1]||S.lastLesson)+'课','return-course','','text-button'):''}
 function vocabularyTabsV8(active){return `<div class="tabs vocabulary-tabs">${[['','词表'],['cards','词卡']].map(([id,t])=>`<a class="tab ${active===id?'active':''}" href="#vocabulary${id?'/'+id:''}">${t}</a>`).join('')}</div>`}
 function vocabularyViewV8(mode,id){
  if(mode==='saved'||mode==='wrong')return notebookViewV9();
  if(mode==='cards'||mode==='lesson')return reviewViewV8(mode==='lesson'?id:null);
  if(mode==='word'&&byWord(id)){const w=byWord(id);S.vocabularyLesson=w.lesson?String(w.lesson):'supplement';S.vocabularyPage=0;vocabularyQueryV8='';vocabularyPosV8='all'}
  const words=mode==='word'&&byWord(id)?[byWord(id)]:filteredVocabularyV8();
- return `${vocabularySwitchboardV9('')}<div class="vocabulary-return">${returnCourseV8()}</div><div class="search-line"><input class="search" type="search" id="vocabulary-search" aria-label="查找本册语汇" placeholder="日语、读音或中文" value="${esc(vocabularyQueryV8)}"></div><div id="vocabulary-results">${wordList(words,S.vocabularyPage||0)}</div>`;
+ return `${vocabularySwitchboardV9('')}<div class="search-line"><input class="search" type="search" id="vocabulary-search" aria-label="查找本册语汇" placeholder="日语、读音或中文" value="${esc(vocabularyQueryV8)}"></div><div id="vocabulary-results">${wordList(words,S.vocabularyPage||0)}</div>`;
 }
 function filteredVocabularyV8(){
- const q=norm(vocabularyQueryV8).toLowerCase();return D.vocab.filter(w=>(S.vocabularyLesson==='supplement'?w.lesson===0:S.vocabularyLesson==='custom'?(w.lessons||[w.lesson]).some(n=>n>=S.scope[0]&&n<=S.scope[1]):Number(S.vocabularyLesson)>0?lessonHasWordV8(w,S.vocabularyLesson):true)&&(!q||norm(w.search||w.word+' '+w.kana+' '+w.meaning).toLowerCase().includes(q))&&(vocabularyPosV8==='all'||(vocabularyPosV8==='数'?/数|量词|计数/.test(w.pos):vocabularyPosV8==='動'?/[动動]|[自他][五一サカ]/.test(w.pos):vocabularyPosV8==='形'?/[形]/.test(w.pos):w.pos.includes(vocabularyPosV8))));
+ const q=norm(vocabularyQueryV8).toLowerCase();return D.vocab.filter(w=>(S.vocabularyLesson==='supplement'?w.lesson===0:Number(S.vocabularyLesson)>0?lessonHasWordV8(w,S.vocabularyLesson):true)&&(!q||norm(w.search||w.word+' '+w.kana+' '+w.meaning).toLowerCase().includes(q))&&(vocabularyPosV8==='all'||(vocabularyPosV8==='数'?/数|量词|计数/.test(w.pos):vocabularyPosV8==='動'?/[动動]|[自他][五一サカ]/.test(w.pos):vocabularyPosV8==='形'?/[形]/.test(w.pos):w.pos.includes(vocabularyPosV8))));
 }
-function reviewViewV8(lessonId){if(lessonId)S.vocabularyLesson=String(lessonId);const words=filteredVocabularyV8().filter(w=>!S.cards[w.id]||S.cards[w.id].due<=Date.now());window.reviewWords=words;if(reviewIndex>=words.length)reviewIndex=0;const w=words[reviewIndex];return `${vocabularySwitchboardV9('cards')}<div class="vocabulary-return">${returnCourseV8()}</div><div class="review-top"><span>${Number(S.vocabularyLesson)>0?'第'+S.vocabularyLesson+'课':S.vocabularyLesson==='supplement'?'补充语汇':S.vocabularyLesson==='custom'?S.scope.join('—')+'课':'全书'}</span><span>${words.length} 词待复习</span></div>${w?`<article class="flashcard"><div class="word">${jp(w.word,w.ruby)}</div><div class="translation">${esc(w.meaning)}</div>${romajiLineV10(w)}<div class="pos">${esc(w.pos)}</div></article><div class="sentence-actions">${voiceButton(w,window.OfficialVoice?.wordId(w.id),'','听')}${button('收藏','save-word',`data-id="${w.id}"`)}</div><div class="review-actions">${button('再看','review-word',`data-id="${w.id}" data-result="again"`)}${button('认识','review-word',`data-id="${w.id}" data-result="good"`,'know')}</div>`:'<div class="empty">本轮已完成</div>'}`}
+function reviewViewV8(lessonId){if(lessonId)S.vocabularyLesson=String(lessonId);const words=filteredVocabularyV8().filter(w=>!S.cards[w.id]||S.cards[w.id].due<=Date.now());window.reviewWords=words;if(reviewIndex>=words.length)reviewIndex=0;const w=words[reviewIndex];return `${vocabularySwitchboardV9('cards')}<div class="review-top"><span>${Number(S.vocabularyLesson)>0?'第'+S.vocabularyLesson+'课':S.vocabularyLesson==='supplement'?'补充语汇':'全书'}</span><span>${words.length} 词待复习</span></div>${w?`<article class="flashcard"><div class="word">${jp(w.word,w.ruby)}</div><div class="translation">${esc(w.meaning)}</div>${romajiLineV10(w)}<div class="pos">${esc(w.pos)}</div></article><div class="sentence-actions">${voiceButton(w,window.OfficialVoice?.wordId(w.id),'','听')}${button('收藏','save-word',`data-id="${w.id}"`)}</div><div class="review-actions">${button('再看','review-word',`data-id="${w.id}" data-result="again"`)}${button('认识','review-word',`data-id="${w.id}" data-result="good"`,'know')}</div>`:'<div class="empty">本轮已完成</div>'}`}
 
 function grammarViewV8(category,id){
  const R=window.STUDY_REFERENCE;if(!R)return '<p>语法资料载入中。</p>';
@@ -120,13 +112,12 @@ function installV8Navigation(){
  document.addEventListener('click',e=>{
   const t=e.target.closest('[data-action]');if(!t)return;
   if(t.dataset.action==='back-top')window.scrollTo({top:0,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
-  if(t.dataset.action==='return-course')navigateV8(S.lastCourseRoute,{y:S.lastCourseY||0});
  });
  document.addEventListener('change',e=>{
   if(e.target.dataset.change==='course-lesson'){const n=Number(e.target.value),tab=e.target.dataset.tab||'notes';navigateV8(n?'lesson/'+n+'/'+tab+'/'+(tab==='notes'?(S.points[n]||0):''):'lessons',{anchor:'.learning-switchboard'})}
   if(e.target.dataset.change==='kana-card-group'){kanaGroup=e.target.value;render();kanaCard(kanaSet()[0].hira)}
   if(e.target.dataset.change==='kana-card-character')kanaCard(e.target.value);
-  if(e.target.dataset.change==='vocabulary-lesson'){S.vocabularyLesson=e.target.value;S.vocabularyPage=0;reviewIndex=0;flipped=false;save();if(e.target.value==='custom'){render();rangeDialog()}else navigateV8(location.hash.includes('/cards')?'vocabulary/cards':'vocabulary',{anchor:'.vocabulary-switchboard'})}
+  if(e.target.dataset.change==='vocabulary-lesson'){S.vocabularyLesson=e.target.value;S.vocabularyPage=0;reviewIndex=0;flipped=false;save();navigateV8(location.hash.includes('/cards')?'vocabulary/cards':'vocabulary',{anchor:'.vocabulary-switchboard'})}
   if(e.target.dataset.change==='conjugation-kind'){conjugationKindV8=e.target.value;conjugationWordV8=0;verbTableV8(0)}
   if(e.target.dataset.change==='conjugation-word')verbTableV8(Number(e.target.value));
   if(e.target.dataset.change==='reference-category'){const id=e.target.value,cat=window.STUDY_REFERENCE.categories.find(c=>c.id===id);navigateV8(cat?'grammar/'+id+'/'+(S.grammarEntries?.[id]||cat.entries[0].id):'grammar/all',{anchor:'.grammar-switchboard'})}
