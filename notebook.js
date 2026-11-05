@@ -53,7 +53,7 @@ function legacySourceV9(book,item,data){
  for(const cat of notebookReferencesV9.get(book)?.categories||[])for(const e of cat.entries)if(e.examples?.some(x=>x.id===ex?.id||x.ja===item.ja)){const x=e.examples.find(x=>x.id===ex?.id||x.ja===item.ja);return {book,area:'语法',label:'语法 · '+cat.title+' · '+e.title,route:'grammar/'+cat.id+'/'+e.id+'/sentence/'+x.id,title:item.ja||x.ja}}
  return {book,area:'课程',label:'课程',route:'lessons',title:item.ja||'收藏'};
 }
-async function fetchBookJSONV9(book,kind){const resource='books/'+book+'/'+kind+'.json.gz',result=await verifiedResourceV13(resource+'?v=14',BOOK_BACKUP_V13+resource,BOOK_HASHES_V13[resource]);if('DecompressionStream'in window)return new Response(new Response(result.bytes).body.pipeThrough(new DecompressionStream('gzip'))).json();const text=await(await fetch('books/'+book+'/'+kind+'.js?v=14')).text();return JSON.parse(kind==='audio-extra'?text.split('const x=')[1].split(';window.STUDY_AUDIO.tracks=')[0]:text.slice(text.indexOf('=')+1).replace(/;\s*$/,''))}
+async function fetchBookJSONV9(book,kind){const resource='books/'+book+'/'+kind+'.json.gz',result=await verifiedResourceV13(resource+'?v=15',BOOK_BACKUP_V13+resource,BOOK_HASHES_V13[resource]);if('DecompressionStream'in window)return new Response(new Response(result.bytes).body.pipeThrough(new DecompressionStream('gzip'))).json();const text=await(await fetch('books/'+book+'/'+kind+'.js?v=15')).text();return JSON.parse(kind==='audio-extra'?text.split('const x=')[1].split(';window.STUDY_AUDIO.tracks=')[0]:text.slice(text.indexOf('=')+1).replace(/;\s*$/,''))}
 function ensureNotebookBookV9(book){
  if(book===window.BOOK_ID){notebookBooksV9.set(book,D);notebookReferencesV9.set(book,window.STUDY_REFERENCE);return}
  if(notebookLoadingV9.has(book))return;
@@ -61,7 +61,7 @@ function ensureNotebookBookV9(book){
  const work=(async()=>{
   const [data,audio,extra,reference]=await Promise.all([fetchBookJSONV9(book,'data'),fetchBookJSONV9(book,'audio'),fetchBookJSONV9(book,'audio-extra'),fetchBookJSONV9(book,'reference')]);
   for(const key of ['tracks','clips','byText'])Object.assign(audio[key],extra[key]);
-  notebookBooksV9.set(book,data);notebookReferencesV9.set(book,reference);window.OfficialVoice.registerBook(book,audio);
+  applyFormulaReadingsV15(data);applyFormulaReadingsV15(reference);notebookBooksV9.set(book,data);notebookReferencesV9.set(book,reference);window.OfficialVoice.registerBook(book,audio);
   if(location.hash.startsWith('#notebook'))updateNotebookV9();
  })().catch(()=>{});notebookLoadingV9.set(book,work);
 }
