@@ -26,7 +26,7 @@ function contextV9(kind,object={}){
 function noteKeyV9(kind,id){return kind+':'+id}
 function noteTextV9(kind,id){return S.itemNotes?.[noteKeyV9(kind,id)]?.text||''}
 function noteActionV9(kind,id){return button('笔记','item-note',`data-note-kind="${esc(kind)}" data-note-id="${esc(id)}"`,'text-button')}
-function notePreviewV9(kind,id){const text=noteTextV9(kind,id);return text?`<p class="inline-user-note">${esc(text)}</p>`:''}
+function notePreviewV9(kind,id){const text=noteTextV9(kind,id);return text?`<div class="inline-user-note">${esc(text)}</div>`:''}
 function noteEditorV9(kind,id,source,heading=true){const key=noteKeyV9(kind,id),text=S.itemNotes?.[key]?.text||'';window.noteSourcesV9??={};window.noteSourcesV9[key]=source;const field=`<textarea class="memo" data-item-note="${esc(key)}" aria-label="${esc(source.title||'条目')}笔记" placeholder="写下笔记">${esc(text)}</textarea>`;return heading?`<section class="learning-section user-note"><h3>笔记</h3>${field}</section>`:field}
 function openItemNoteV9(kind,id){
  let object,source;
@@ -43,6 +43,7 @@ function savedSnapshotV9(item){
 }
 function saveReferenceV9(category,id){const cat=window.STUDY_REFERENCE.categories.find(c=>c.id===category),e=cat?.entries.find(e=>e.id===id);if(e)addSaved({type:'reference',id,category,reference:{title:e.title,titleRuby:e.titleRuby,summary:e.summary},source:{book:window.BOOK_ID,area:'语法',label:'语法 · '+cat.title+' · '+e.title,route:'grammar/'+category+'/'+id,title:e.title}})}
 function legacySourceV9(book,item,data){
+ const redirect=item.type==='word'&&data?.vocabRedirects?.[item.id];if(redirect)return {book,area:redirect.kind==='reference'?'语法':'课程',label:redirect.label,route:redirect.route,title:redirect.label};
  if(item.source)return item.type==='kana'&&item.source.route==='kana'?{...item.source,route:'kana/'+encodeURIComponent(item.kana.hira)}:item.source;
  if(item.type==='word'){const w=notebookWordV9(data,item.id);return {book,area:'语汇',label:'语汇'+(w?.lesson?' · 第'+w.lesson+'课':''),route:'vocabulary/word/'+(w?.id||item.id),title:w?.word||'已收藏词语'}}
  if(item.type==='grammar'){const l=data?.lessons.find(l=>l.id===item.lesson),g=l?.grammar[item.gi];return {book,area:'课程',label:'课程 · 第'+item.lesson+'课 · '+(g?.title||'讲解'),route:'lesson/'+item.lesson+'/notes/'+(item.gi||0),title:g?.title||'语法'}}
@@ -53,7 +54,7 @@ function legacySourceV9(book,item,data){
  for(const cat of notebookReferencesV9.get(book)?.categories||[])for(const e of cat.entries)if(e.examples?.some(x=>x.id===ex?.id||x.ja===item.ja)){const x=e.examples.find(x=>x.id===ex?.id||x.ja===item.ja);return {book,area:'语法',label:'语法 · '+cat.title+' · '+e.title,route:'grammar/'+cat.id+'/'+e.id+'/sentence/'+x.id,title:item.ja||x.ja}}
  return {book,area:'课程',label:'课程',route:'lessons',title:item.ja||'收藏'};
 }
-async function fetchBookJSONV9(book,kind){if('DecompressionStream'in window){const resource='books/'+book+'/'+kind+'.json.gz',result=await verifiedResourceV13(resource+'?v=16',BOOK_BACKUP_V13+resource,BOOK_HASHES_V13[resource]);return new Response(result.bytes).json()}const text=await(await fetch('books/'+book+'/'+kind+'.js?v=16')).text();return JSON.parse(kind==='audio-extra'?text.split('const x=')[1].split(';window.STUDY_AUDIO.tracks=')[0]:text.slice(text.indexOf('=')+1).replace(/;\s*$/,''))}
+async function fetchBookJSONV9(book,kind){if('DecompressionStream'in window){const resource='books/'+book+'/'+kind+'.json.gz',result=await verifiedResourceV13(resource+'?v=25',BOOK_BACKUP_V13+resource,BOOK_HASHES_V13[resource]);return new Response(result.bytes).json()}const text=await(await fetch('books/'+book+'/'+kind+'.js?v=25')).text();return JSON.parse(kind==='audio-extra'?text.split('const x=')[1].split(';window.STUDY_AUDIO.tracks=')[0]:text.slice(text.indexOf('=')+1).replace(/;\s*$/,''))}
 function ensureNotebookBookV9(book){
  if(book===window.BOOK_ID){notebookBooksV9.set(book,D);notebookReferencesV9.set(book,window.STUDY_REFERENCE);return}
  if(notebookLoadingV9.has(book))return;
@@ -71,7 +72,7 @@ function notebookEntriesV9(){
   const state=bookStateV9(book),data=book===window.BOOK_ID?D:notebookBooksV9.get(book);
   (state.wrong||[]).forEach((item,index)=>result.push({kind:'saved',book,index,item,source:legacySourceV9(book,item,data),data,date:item.savedAt||0}));
   for(const [lesson,text] of Object.entries(state.notes||{}))if(typeof text==='string'&&text.trim())result.push({kind:'note',book,key:'lesson:'+lesson,text,source:{book,area:'课程',label:'课程 · 第'+lesson+'课',title:'第'+lesson+'课笔记',route:'lesson/'+lesson+'/notes/'+(state.points?.[lesson]||0)},date:0});
-  for(const [key,n] of Object.entries(state.itemNotes||{}))if(n.text?.trim())result.push({kind:'note',book,key,text:n.text,source:n.source||{book,area:'笔记',label:'笔记',title:'笔记',route:'lessons'},date:n.updatedAt||0});
+  for(const [key,n] of Object.entries(state.itemNotes||{}))if(!key.startsWith('free:')&&n.text?.trim())result.push({kind:'note',book,key,text:n.text,source:n.source||{book,area:'笔记',label:'笔记',title:'笔记',route:'lessons'},date:n.updatedAt||0});
  }
  return result.sort((a,b)=>b.date-a.date);
 }
@@ -80,13 +81,14 @@ function notebookDataV10(book){return book===window.BOOK_ID?D:notebookBooksV9.ge
 function notebookReferenceV10(book){return book===window.BOOK_ID?window.STUDY_REFERENCE:notebookReferencesV9.get(book)}
 function notebookUnitV10(book,unit){const data=notebookDataV10(book);if(!data)return unit;const index=readingIndexV10(data,notebookReferenceV10(book));return index.byId.get(unit?.id)||index.byText.get(unit?.ja||unit?.word)||unit}
 function notebookSentenceV10(book,unit){const e=notebookUnitV10(book,unit);return e?.ja?`<div class="notebook-study"><p class="notebook-sentence">${jp(e.ja,e.ruby)}</p><p class="translation">${esc(e.zh||'')}</p>${romajiLineV10(e)}${e.id?notebookListenV9(book,e.id,e):''}</div>`:''}
-function notebookWordBlockV10(book,w){return w?`<div class="notebook-study"><div class="notebook-word">${jp(w.word,w.ruby)}</div><p class="translation">${esc(w.meaning||'')}</p>${romajiLineV10(notebookUnitV10(book,w))}${notebookListenV9(book,'word:'+w.id,w)}</div>`:'<p class="quiet">正在载入词语…</p>'}
+function notebookWordBlockV10(book,w){return w?`<div class="notebook-study"><div class="notebook-word">${jp(w.word,w.ruby)}</div><p class="translation">${studyProseV18(w.meaning||'')}</p>${romajiLineV10(notebookUnitV10(book,w))}${notebookListenV9(book,'word:'+w.id,w)}</div>`:'<p class="quiet">正在载入词语…</p>'}
+function notebookLegacyWordV18(book,id){const data=notebookDataV10(book),redirect=data?.vocabRedirects?.[id];if(!redirect)return '';if(redirect.kind==='reference'){const point=notebookReferenceV10(book)?.categories.find(c=>c.id===redirect.category)?.entries.find(e=>e.id===redirect.id);return notebookPointV10(book,point)}for(const r of data.readings)for(const s of r.sections){const e=s.entries.find(e=>e.id===redirect.id);if(e)return notebookSentenceV10(book,e)}return ''}
 function notebookKanaV10(book,k){return k?`<div class="notebook-study"><div class="notebook-word" lang="ja">${esc(k.hira)} / ${esc(k.kata)}</div><p class="translation">${esc(kanaMeaningV10(k))}</p>${romajiLineV10(kanaRomanV10(k.hira))}${notebookListenV9(book,'kana:'+k.hira,k.hira)}</div>`:''}
-function notebookPointV10(book,g){if(!g)return '';const formula=g.formula?`<p class="grammar-formula" lang="ja">${jp(g.formula,g.formulaRuby)}</p>`:'';return `<h2 class="notebook-title">${jp(g.title,g.titleRuby)}</h2>${formula}<p class="translation">${esc(g.summary||g.explanation||'')}</p>${g.formulaRomaji?romajiLineV10(g.formulaRomaji):''}${g.examples?.[0]?notebookSentenceV10(book,g.examples[0]):''}`}
+function notebookPointV10(book,g){if(!g)return '';const formula=g.formula?`<p class="grammar-formula" lang="ja">${mixedJapaneseV18(g.formula,g.formulaRuby,'formula')}</p>`:'';return `<h2 class="notebook-title">${mixedJapaneseV18(g.title,g.titleRuby)}</h2>${formula}<p class="translation">${studyProseV18(g.summary||g.explanation||'')}</p>${g.formulaRomaji?romajiLineV10(g.formulaRomaji):''}${g.examples?.[0]?notebookSentenceV10(book,g.examples[0]):''}`}
 function notebookSourceStudyV10(book,source,key){
  const data=notebookDataV10(book),reference=notebookReferenceV10(book);if(!data)return '<p class="quiet">正在载入内容…</p>';
  const route=(source.route||'').split('/'),type=key?.split(':')[0],id=key?.slice((type?.length||0)+1);
- if(type==='word')return notebookWordBlockV10(book,notebookWordV9(data,id));
+ if(type==='word')return notebookLegacyWordV18(book,id)||notebookWordBlockV10(book,notebookWordV9(data,id));
  if(type==='kana'){const hira=decodeURIComponent(id||route[1]||'');return notebookKanaV10(book,[...data.history.kana,...voiced,...yon].find(k=>k.hira===hira))}
  if(type==='sentence'){const index=readingIndexV10(data,reference),e=index.byId.get(id);if(e)return notebookSentenceV10(book,e)}
  if(route[0]==='grammar'){const cat=reference?.categories.find(c=>c.id===route[1]),g=cat?.entries.find(g=>g.id===route[2]);return notebookPointV10(book,g)}
@@ -100,10 +102,10 @@ function notebookSourceStudyV10(book,source,key){
 }
 function notebookEntryV9(row){
  const {book,source}=row;let content='';const data=notebookDataV10(book),reference=notebookReferenceV10(book);
- if(row.kind==='note')content=notebookSourceStudyV10(book,source,row.key)+`<p class="notebook-note">${esc(row.text)}</p>`;
+ if(row.kind==='note')content=notebookSourceStudyV10(book,source,row.key)+`<div class="notebook-note">${esc(row.text)}</div>`;
  else{
   const x=row.item;
-  if(x.type==='word')content=notebookWordBlockV10(book,notebookWordV9(data,x.id)||x.word);
+  if(x.type==='word')content=notebookLegacyWordV18(book,x.id)||notebookWordBlockV10(book,notebookWordV9(data,x.id)||x.word);
   else if(x.type==='reference'){const g=reference?.categories.find(c=>c.id===x.category)?.entries.find(e=>e.id===x.id);content=notebookPointV10(book,g||x.reference)}
   else if(x.type==='kana')content=notebookKanaV10(book,x.kana);
   else if(x.type==='grammar'){const g=data?.lessons.find(l=>l.id===x.lesson)?.grammar[x.gi];content=notebookPointV10(book,g)||`<h2 class="notebook-title">${esc(source.title)}</h2>`}
