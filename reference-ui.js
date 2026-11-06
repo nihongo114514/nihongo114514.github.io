@@ -12,11 +12,16 @@ function withStudyTransitionV9(update,selector='#main',immediate=false){
  }).then(()=>{if(current())element.dataset.transitionPhase='idle'}).catch(()=>{});
 }
 function closeModalV9(){if($('#dialog').open)withStudyTransitionV9(()=>$('#dialog').close(),'#dialog-content')}
-function alignLearningContentV9(target){const board=document.querySelector('.learning-switchboard,.grammar-switchboard');if(board&&board.getBoundingClientRect().top<=(document.querySelector('.site-header')?.getBoundingClientRect().height||0)+1)window.scrollTo({top:Math.max(0,scrollY+target.getBoundingClientRect().top-board.getBoundingClientRect().bottom-18),behavior:'instant'})}
-function switchWordPageV9(t){const target=$('#word-results')||$('#all-word-results')||$('#vocabulary-results');if(!target)return;withStudyTransitionV9(()=>{target.innerHTML=wordList(window.filteredWords||[],Number(t.dataset.page));if(target.id==='vocabulary-results'){S.vocabularyPage=wordPage;save()}else if(target.id==='word-results'){S.wordPages??={};S.wordPages[S.lastLesson]=wordPage;save()}alignLearningContentV9(target)},'#'+target.id)}
+let studyPageChangeV37=0;
+function withStudyStartV37(update,selector='#main'){
+ const token=++studyPageChangeV37,element=document.querySelector(selector);if(element){studyTransitionStatesV9.get(element)?.animation?.cancel();studyTransitionStatesV9.delete(element)}
+ window.OfficialVoice?.stop();closeNotePanelV29(false);
+ const top=typeof scrollStudyTopV37==='function'?scrollStudyTopV37():Promise.resolve(true);
+ return top.then(ready=>{if(!ready||token!==studyPageChangeV37)return;withStudyTransitionV9(()=>{if(token!==studyPageChangeV37)return;update();window.scrollTo({top:0,left:0,behavior:'instant'});requestAnimationFrame(()=>{if(token===studyPageChangeV37)window.scrollTo({top:0,left:0,behavior:'instant'})})},selector)});
+}
+function switchWordPageV9(t){const target=$('#word-results')||$('#all-word-results')||$('#vocabulary-results');if(!target)return;withStudyStartV37(()=>{target.innerHTML=wordList(window.filteredWords||[],Number(t.dataset.page));if(target.id==='vocabulary-results'){S.vocabularyPage=wordPage;save()}else if(target.id==='word-results'){S.wordPages??={};S.wordPages[S.lastLesson]=wordPage;save()}},'#'+target.id)}
 
-let shownRouteV8='',pendingNavigationV8=null,vocabularyPosV8='all';
-const positionsV8=new Map();
+let shownRouteV8='',vocabularyPosV8='all';
 const detailStatesV8=new Map();
 let conjugationKindV8='verb',conjugationWordV8=0;
 function verbTableV8(index=conjugationWordV8){
@@ -25,20 +30,10 @@ function verbTableV8(index=conjugationWordV8){
 }
 const lessonHasWordV8=(w,id)=>w.lesson===Number(id)||(w.lessons||[]).includes(Number(id));
 function rememberDetailsV8(){if(shownRouteV8)detailStatesV8.set(shownRouteV8,[...document.querySelectorAll('#main details')].filter(e=>e.open).map((e,i)=>e.dataset.detailKey||e.querySelector('summary')?.textContent+'|'+[...document.querySelectorAll('#main details')].indexOf(e)))}
-function rememberPositionV8(){if(shownRouteV8)positionsV8.set(shownRouteV8,scrollY);rememberDetailsV8()}
-function navigateV8(target,options={}){
- rememberPositionV8();const old=shownRouteV8,hash='#'+target;
- let y=Number.isFinite(options.y)?options.y:null,anchor=null;
- window.scrollTo({top:scrollY,behavior:'instant'});
- if(options.anchor){const el=document.querySelector(options.anchor),board=document.querySelector('.learning-switchboard,.grammar-switchboard');let top=el?.getBoundingClientRect().top;if(options.anchor==='.sentence-block')top=Math.max(top||0,(board?.getBoundingClientRect().bottom||0)+18);if(el||options.anchor==='.sentence-block')anchor={selector:options.anchor,top}}
- if(y===null&&(/^#lesson\//.test(old)&&/^#lesson\//.test(hash)||old===hash||options.keep))y=scrollY;
- pendingNavigationV8={hash,y,anchor};
- if(location.hash===hash)render();else location.hash=target;
-}
+function navigateV8(target){rememberDetailsV8();if(location.hash==='#'+target)render();else location.hash=target}
 function renderV8(){
- const hash=location.hash||'#',old=shownRouteV8,oldY=scrollY;
+ const hash=location.hash||'#',old=shownRouteV8;
  rememberDetailsV8();
- if(old)positionsV8.set(old,oldY);
  let [r,a,b,c,d]=hash.slice(1).split('/');
  const legacyWord=r==='vocabulary'&&a==='word'?b:r==='lesson'&&b==='vocab'&&c==='word'?d:null,redirect=D.vocabRedirects?.[legacyWord];
  if(redirect){const parts=redirect.route.split('/');[r,a,b,c,d]=parts;history.replaceState(null,'','#'+redirect.route)}
@@ -54,12 +49,7 @@ function renderV8(){
  if(r==='lesson'&&b==='reading'){const board=document.querySelector('.course-switchboard');for(const selector of ['.reading-controls','.reading-picker']){const part=document.querySelector(selector);if(board&&part)board.append(part)}}
  const openDetails=detailStatesV8.get(hash)||[];document.querySelectorAll('#main details').forEach((e,i)=>{if(openDetails.includes(e.dataset.detailKey||e.querySelector('summary')?.textContent+'|'+i))e.open=true});
  syncStickyHeadersV29();furiState();window.OfficialVoice?.sync();shownRouteV8=hash;if(focusedKana)requestAnimationFrame(()=>kanaCard(focusedKana));
- const pending=pendingNavigationV8;pendingNavigationV8=null;
- let y=pending&&pending.hash===hash?pending.y:null;
- if(y===null)y=hash===old?oldY:(positionsV8.get(hash)??0);
- if(pending?.anchor){const el=document.querySelector(pending.anchor.selector);if(el){const board=el.closest('.grammar-switchboard,.learning-switchboard'),position=board?.style.position;if(board)board.style.position='relative';y=scrollY+el.getBoundingClientRect().top-pending.anchor.top;if(board)board.style.position=position}}
- window.scrollTo({top:Math.max(0,y),behavior:'instant'});
- const focusedSentence=/\/sentence\/([^/]+)$/.exec(hash);if(focusedSentence&&hash!==old){const target=document.querySelector('[data-source-sentence="'+CSS.escape(focusedSentence[1])+'"]'),board=document.querySelector('.learning-switchboard,.grammar-switchboard');if(target)window.scrollTo({top:Math.max(0,scrollY+target.getBoundingClientRect().top-(board?.getBoundingClientRect().height||0)-(document.querySelector('.site-header')?.getBoundingClientRect().height||0)-18),behavior:'instant'})}
+ window.scrollTo({top:0,left:0,behavior:'instant'});
 
 }
 
@@ -104,23 +94,21 @@ function installV8Navigation(){
  document.addEventListener('click',e=>{
   const a=e.target.closest('a[href^="#"]');if(!a||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;
   const target=a.getAttribute('href').slice(1);if(target==='main')return;
-  e.preventDefault();let anchor=null;
-  if(a.closest('.reference-pager'))anchor='.reference-picker';
-  navigateV8(target,anchor?{anchor}:{});
+  e.preventDefault();navigateV8(target);
  },true);
  document.addEventListener('click',e=>{
   const t=e.target.closest('[data-action]');if(!t)return;
-  if(t.dataset.action==='back-top')window.scrollTo({top:0,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
+  if(t.dataset.action==='back-top')scrollStudyTopV37();
  });
  document.addEventListener('change',e=>{
-  if(e.target.dataset.change==='course-lesson'){const n=Number(e.target.value),tab=e.target.dataset.tab||'notes';navigateV8(n?'lesson/'+n+'/'+tab+'/'+(tab==='notes'?(S.points[n]||0):''):'lessons',{anchor:'.learning-switchboard'})}
+  if(e.target.dataset.change==='course-lesson'){const n=Number(e.target.value),tab=e.target.dataset.tab||'notes';navigateV8(n?'lesson/'+n+'/'+tab+'/'+(tab==='notes'?(S.points[n]||0):''):'lessons')}
   if(e.target.dataset.change==='kana-card-group'){kanaGroup=e.target.value;render();kanaCard(kanaSet()[0].hira)}
   if(e.target.dataset.change==='kana-card-character')kanaCard(e.target.value);
-  if(e.target.dataset.change==='vocabulary-lesson'){S.vocabularyLesson=e.target.value;S.vocabularyPage=0;reviewIndex=0;flipped=false;save();navigateV8(location.hash.includes('/cards')?'vocabulary/cards':'vocabulary',{anchor:'.vocabulary-switchboard'})}
+  if(e.target.dataset.change==='vocabulary-lesson'){S.vocabularyLesson=e.target.value;S.vocabularyPage=0;reviewIndex=0;flipped=false;save();navigateV8(location.hash.includes('/cards')?'vocabulary/cards':'vocabulary')}
   if(e.target.dataset.change==='conjugation-kind'){conjugationKindV8=e.target.value;conjugationWordV8=0;verbTableV8(0)}
   if(e.target.dataset.change==='conjugation-word')verbTableV8(Number(e.target.value));
-  if(e.target.dataset.change==='reference-category'){const id=e.target.value,cat=window.STUDY_REFERENCE.categories.find(c=>c.id===id);navigateV8(cat?'grammar/'+id+'/'+(S.grammarEntries?.[id]||cat.entries[0].id):'grammar/all',{anchor:'.grammar-switchboard'})}
-  if(e.target.dataset.change==='reference-entry')navigateV8('grammar/'+e.target.dataset.category+'/'+e.target.value,{anchor:'.reference-picker'});
+  if(e.target.dataset.change==='reference-category'){const id=e.target.value,cat=window.STUDY_REFERENCE.categories.find(c=>c.id===id);navigateV8(cat?'grammar/'+id+'/'+(S.grammarEntries?.[id]||cat.entries[0].id):'grammar/all')}
+  if(e.target.dataset.change==='reference-entry')navigateV8('grammar/'+e.target.dataset.category+'/'+e.target.value);
   if(e.target.dataset.change==='vocabulary-pos'){vocabularyPosV8=e.target.value;S.vocabularyPage=0;reviewIndex=0;render()}
  });
 ;
