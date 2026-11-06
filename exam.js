@@ -50,7 +50,7 @@ document.addEventListener('submit',event=>{
   if(!Number.isInteger(from)||!Number.isInteger(to)||from<1||to>D.lessons.length||from>to){toast('请输入有效的课次区间');return}
   S.examConfig={from,to,count,supplement};const recent=S.examPaper?.questions.map(q=>q.id)||[];const paper=ExamEngineV29.generate(getExamBankV29(),from,to,count,supplement,recent);if(!paper.questions.length){toast('这个范围暂无可组卷题目，请扩大课次范围');return}S.examPaper=paper;examFilterV29='all';save();document.querySelector('#dialog').close();if(location.hash==='#exam')render({immediate:true});else route('exam');
  }
- if(event.target.id==='exam-paper'){event.preventDefault();if(!S.examPaper)return;S.examPaper.submitted=true;S.examPaper.submittedAt=Date.now();examFilterV29='all';save();render({immediate:true});requestAnimationFrame(()=>document.querySelector('.exam-summary')?.scrollIntoView({behavior:'smooth',block:'start'}))}
+ if(event.target.id==='exam-paper'){event.preventDefault();if(!S.examPaper)return;S.examPaper.submitted=true;S.examPaper.submittedAt=Date.now();examFilterV29='all';save();render({immediate:true})}
 });
 function recordExamAnswerV29(t){if(!t.dataset.examAnswer||!S.examPaper||S.examPaper.submitted)return;S.examPaper.answers[t.dataset.examAnswer]=t.value;save();updateExamProgressV29()}
 document.addEventListener('input',e=>recordExamAnswerV29(e.target));document.addEventListener('change',e=>recordExamAnswerV29(e.target));
