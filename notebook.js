@@ -47,7 +47,7 @@ function legacySourceV9(book,item,data){
  for(const cat of notebookReferencesV9.get(book)?.categories||[])for(const e of cat.entries)if(e.examples?.some(x=>x.id===ex?.id||x.ja===item.ja)){const x=e.examples.find(x=>x.id===ex?.id||x.ja===item.ja);return {book,area:'语法',label:'语法 · '+cat.title+' · '+e.title,route:'grammar/'+cat.id+'/'+e.id+'/sentence/'+x.id,title:item.ja||x.ja}}
  return {book,area:'课程',label:'课程',route:'lessons',title:item.ja||'收藏'};
 }
-async function fetchBookJSONV9(book,kind){if('DecompressionStream'in window){const resource='books/'+book+'/'+kind+'.json.gz',result=await verifiedResourceV13(resource+'?v=37',BOOK_BACKUP_V13+resource,BOOK_HASHES_V13[resource]);return new Response(result.bytes).json()}const text=await(await fetch('books/'+book+'/'+kind+'.js?v=37')).text();return JSON.parse(kind==='audio-extra'?text.split('const x=')[1].split(';window.STUDY_AUDIO.tracks=')[0]:text.slice(text.indexOf('=')+1).replace(/;\s*$/,''))}
+async function fetchBookJSONV9(book,kind){if('DecompressionStream'in window){const resource='books/'+book+'/'+kind+'.json.gz',result=await verifiedResourceV13(resource+'?v=38',bookBackupV38(resource),BOOK_HASHES_V13[resource]);return new Response(result.bytes).json()}const text=await(await fetch('books/'+book+'/'+kind+'.js?v=38')).text();return JSON.parse(kind==='audio-extra'?text.split('const x=')[1].split(';window.STUDY_AUDIO.tracks=')[0]:text.slice(text.indexOf('=')+1).replace(/;\s*$/,''))}
 function ensureNotebookBookV9(book){
  if(book===window.BOOK_ID){notebookBooksV9.set(book,D);notebookReferencesV9.set(book,window.STUDY_REFERENCE);return}
  if(notebookLoadingV9.has(book))return;

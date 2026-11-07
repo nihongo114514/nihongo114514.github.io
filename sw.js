@@ -1,5 +1,5 @@
-const SHELL='nihongo-series-shell-v37',AUDIO='nihongo-audio-original-v1';
-const ASSETS=["./","./index.html","./loader.js?v=37","./icon.svg","./manifest.webmanifest"];
+const SHELL='nihongo-series-shell-v38',AUDIO='nihongo-audio-original-v1';
+const ASSETS=["./","./index.html","./loader.js?v=38","./icon.svg","./manifest.webmanifest"];
 const BOOK_BACKUP_V13="https://raw.githubusercontent.com/nihongo114514/nihongo114514.github.io/6bbba7ece35a5bdcd91274b100c0175130b62bdb/";
 const pendingAudio=new Map();
 self.addEventListener('install',event=>event.waitUntil(self.skipWaiting()));
@@ -7,7 +7,7 @@ self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=
 async function recordingResponseV13(url){
  const first=new AbortController(),second=new AbortController(),path=new URL(url).pathname.replace(/^\//,'');
  async function attempt(target,controller){const r=await fetch(target,{credentials:'omit',signal:controller.signal});if(r.status!==200||!/audio\/|application\/octet-stream/i.test(r.headers.get('content-type')||''))throw Error('Recording unavailable');return {bytes:await r.arrayBuffer(),target}}
- const primary=attempt(url,first),alternate=new Promise(resolve=>setTimeout(resolve,1200)).then(()=>attempt(BOOK_BACKUP_V13+path,second));
+ const primary=attempt(url,first),alternate=new Promise(resolve=>setTimeout(resolve,1200)).then(()=>attempt((path.startsWith('audio/clips/')?'https://raw.githubusercontent.com/nihongo114514/nihongo114514.github.io/refs/heads/main/':BOOK_BACKUP_V13)+path,second));
  const result=await Promise.any([primary,alternate]);if(result.target===url)second.abort();else first.abort();return new Response(result.bytes,{headers:{'Content-Type':'audio/mpeg','Content-Length':String(result.bytes.byteLength),'Accept-Ranges':'bytes'}});
 }
 async function wholeAudio(url){
@@ -27,7 +27,7 @@ async function cacheAudio(url){
  const u=new URL(url,self.location.href);u.hash='';if(u.origin!==self.location.origin||!u.pathname.includes('/audio/')||!u.pathname.endsWith('.mp3'))return;
  try{await wholeAudio(u.href)}catch{}
 }
-self.addEventListener('message',event=>{if(event.data?.type==='CACHE_SHELL')event.waitUntil(caches.open(SHELL).then(cache=>Promise.allSettled(ASSETS.map(url=>cache.add(url)))));if(event.data?.type==='CACHE_AUDIO')event.waitUntil(cacheAudio(event.data.url));if(event.data?.type==='CACHE_BOOK'&&['beginner','intermediate','advanced'].includes(event.data.book)){const b=event.data.book,suffix=event.data.compressed?'.json.gz?v=37':'.js?v=37';event.waitUntil(caches.open(SHELL).then(cache=>Promise.allSettled(['data','audio','reference','audio-extra'].flatMap(kind=>['./books/'+b+'/'+kind+suffix,BOOK_BACKUP_V13+'books/'+b+'/'+kind+(event.data.compressed?'.json.gz':'.js')]).map(url=>cache.add(url)))))}});
+self.addEventListener('message',event=>{if(event.data?.type==='CACHE_SHELL')event.waitUntil(caches.open(SHELL).then(cache=>Promise.allSettled(ASSETS.map(url=>cache.add(url)))));if(event.data?.type==='CACHE_AUDIO')event.waitUntil(cacheAudio(event.data.url));if(event.data?.type==='CACHE_BOOK'&&['beginner','intermediate','advanced'].includes(event.data.book)){const b=event.data.book,suffix=event.data.compressed?'.json.gz?v=38':'.js?v=38';event.waitUntil(caches.open(SHELL).then(cache=>Promise.allSettled(['data','audio','reference','audio-extra'].flatMap(kind=>['./books/'+b+'/'+kind+suffix,BOOK_BACKUP_V13+'books/'+b+'/'+kind+(event.data.compressed?'.json.gz':'.js')]).map(url=>cache.add(url)))))}});
 async function audioResponse(request,url){
  const saved=await wholeAudio(url.href);
  const range=request.headers.get('range');if(!range)return saved;
