@@ -14,4 +14,5 @@ function applyStudyQualityV35(data,reference,book){
  const aliases=patch.aliases||{};data.vocabAliases={...data.vocabAliases,...aliases};
  data.vocab=data.vocab.filter(w=>!aliases[w.id]);
  for(const w of data.vocab){if(patch.words?.[w.id])Object.assign(w,JSON.parse(JSON.stringify(patch.words[w.id])));const q=window.STUDY_LEXICAL_AUDIT_V35?.[book]?.[w.id];if(q){w.lesson=q.lesson;w.lessons=q.lessons;w.contexts=q.contexts.map(id=>units.get(id)).filter(Boolean);w.examGapsV35=q.gaps}}
+ if(typeof applyVocabularyV39==='function')applyVocabularyV39(data,book,reference);
 }

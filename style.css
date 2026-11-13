@@ -103,3 +103,6 @@ html{scroll-padding-top:calc(var(--site-header-height) + var(--section-header-he
 @media(max-width:760px){.site-header .wordmark{font-size:clamp(14px,4.3vw,19px)}}
 
 .writing-sheet{container-type:inline-size}.writing-guide{white-space:nowrap;font-size:calc(80cqw / var(--guide-glyphs,1))}
+
+/* Spatial kana navigation follows the visible table and skips empty cells. */
+.kana-direction-pad{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.35rem;margin:1.6rem auto 0;max-width:29rem}.kana-direction-pad button{font-size:.9rem;min-height:44px;padding:.4rem .2rem;white-space:nowrap}.kana-direction-up{grid-area:1/2}.kana-direction-left{grid-area:2/1}.kana-direction-right{grid-area:2/3}.kana-direction-down{grid-area:3/2}.sequence-pager{gap:1rem}.vocab-footer{gap:.5rem}.vocab-footer button{white-space:nowrap;font-size:.9rem}.kana-direction-pad button[data-direction]{font-family:var(--ui-font, sans-serif)}
