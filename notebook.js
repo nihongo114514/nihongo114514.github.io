@@ -1,5 +1,5 @@
 'use strict';
-let notebookFilterV9='all',notebookBookV9='all',notebookAreaV9='all';
+let notebookFilterV9='all',notebookBookV9='all',notebookAreaV9='all',notebookPageV39=0;
 const notebookBooksV9=new Map(),notebookReferencesV9=new Map(),notebookLoadingV9=new Map();
 const stateKeyV9=book=>book==='beginner'?'nihongo-study-v1':'nihongo-study-v1-'+book;
 const bookLabelV9=book=>window.BOOKS[book]?.label||'';
@@ -47,7 +47,7 @@ function legacySourceV9(book,item,data){
  for(const cat of notebookReferencesV9.get(book)?.categories||[])for(const e of cat.entries)if(e.examples?.some(x=>x.id===ex?.id||x.ja===item.ja)){const x=e.examples.find(x=>x.id===ex?.id||x.ja===item.ja);return {book,area:'语法',label:'语法 · '+cat.title+' · '+e.title,route:'grammar/'+cat.id+'/'+e.id+'/sentence/'+x.id,title:item.ja||x.ja}}
  return {book,area:'课程',label:'课程',route:'lessons',title:item.ja||'收藏'};
 }
-async function fetchBookJSONV9(book,kind){if('DecompressionStream'in window){const resource='books/'+book+'/'+kind+'.json.gz',result=await verifiedResourceV13(resource+'?v=38',bookBackupV38(resource),BOOK_HASHES_V13[resource]);return new Response(result.bytes).json()}const text=await(await fetch('books/'+book+'/'+kind+'.js?v=38')).text();return JSON.parse(kind==='audio-extra'?text.split('const x=')[1].split(';window.STUDY_AUDIO.tracks=')[0]:text.slice(text.indexOf('=')+1).replace(/;\s*$/,''))}
+async function fetchBookJSONV9(book,kind){if('DecompressionStream'in window){const resource='books/'+book+'/'+kind+'.json.gz',result=await verifiedResourceV13(resource+'?v=39',bookBackupV38(resource),BOOK_HASHES_V13[resource]);return new Response(result.bytes).json()}const text=await(await fetch('books/'+book+'/'+kind+'.js?v=39')).text();return JSON.parse(kind==='audio-extra'?text.split('const x=')[1].split(';window.STUDY_AUDIO.tracks=')[0]:text.slice(text.indexOf('=')+1).replace(/;\s*$/,''))}
 function ensureNotebookBookV9(book){
  if(book===window.BOOK_ID){notebookBooksV9.set(book,D);notebookReferencesV9.set(book,window.STUDY_REFERENCE);return}
  if(notebookLoadingV9.has(book))return;
@@ -55,7 +55,7 @@ function ensureNotebookBookV9(book){
  const work=(async()=>{
   const [data,audio,extra,reference]=await Promise.all([fetchBookJSONV9(book,'data'),fetchBookJSONV9(book,'audio'),fetchBookJSONV9(book,'audio-extra'),fetchBookJSONV9(book,'reference')]);
   for(const key of ['tracks','clips','byText'])Object.assign(audio[key],extra[key]);
-  applyFormulaReadingsV15(data);applyFormulaReadingsV15(reference);applyStudyQualityV35(data,reference,book);notebookBooksV9.set(book,data);notebookReferencesV9.set(book,reference);window.OfficialVoice.registerBook(book,audio);
+  applyFormulaReadingsV15(data);applyFormulaReadingsV15(reference);applyStudyQualityV35(data,reference,book);notebookBooksV9.set(book,data);notebookReferencesV9.set(book,reference);applyVocabularyAudioV39(book,audio);window.OfficialVoice.registerBook(book,audio);
   if(location.hash.startsWith('#notebook'))updateNotebookV9();
  })().catch(()=>{});notebookLoadingV9.set(book,work);
 }
@@ -127,7 +127,7 @@ function notebookEntryV9(row){
  const noteAction=row.kind==='note'?button('笔记','edit-global-note',`data-book="${book}" data-note-key="${esc(row.key)}"`,'text-button'):button('笔记','saved-note',`data-book="${book}" data-index="${row.index}"`,'text-button');
  return `<article class="notebook-row"><p class="notebook-source">${esc(bookLabelV9(book))} · ${esc(source.label)}</p>${content}<div class="notebook-actions"><a class="text-button" href="${notebookURLV9(book,source.route)}">打开原处 →</a><span class="bookmark-actions">${savedAction}${noteAction}</span></div></article>`;
 }
-function notebookResultsV9(){const all=notebookEntriesV9(),items=all.filter(r=>(notebookFilterV9==='all'?r.kind!=='note'||savedForNoteV32(r)<0:r.kind===notebookFilterV9)&&(notebookBookV9==='all'||r.book===notebookBookV9)&&(notebookAreaV9==='all'||r.source.area===notebookAreaV9));return items.map(notebookEntryV9).join('')||'<div class="empty">收藏与笔记会保存在这里</div>'}
+function notebookResultsV9(){const all=notebookEntriesV9(),items=all.filter(r=>(notebookFilterV9==='all'?r.kind!=='note'||savedForNoteV32(r)<0:r.kind===notebookFilterV9)&&(notebookBookV9==='all'||r.book===notebookBookV9)&&(notebookAreaV9==='all'||r.source.area===notebookAreaV9));const size=20,max=Math.max(0,Math.ceil(items.length/size)-1);notebookPageV39=Math.max(0,Math.min(notebookPageV39,max));return (items.slice(notebookPageV39*size,(notebookPageV39+1)*size).map(notebookEntryV9).join('')||'<div class="empty">收藏与笔记会保存在这里</div>')+boundaryPagerV38(notebookPageV39>0?button('← 上一页','notebook-page',`data-page="${notebookPageV39-1}"`):'',notebookPageV39<max?button('下一页 →','notebook-page',`data-page="${notebookPageV39+1}"`):'','pager sequence-pager')}
 
 function updateNotebookV9(start=false){const target=document.querySelector('#notebook-results');if(!target)return;const update=()=>{target.innerHTML=notebookResultsV9();window.OfficialVoice?.sync()};if(start)withStudyStartV37(update,'#notebook-results');else withStudyTransitionV9(update,'#notebook-results')}
 function notebookViewV9(){
@@ -140,7 +140,8 @@ document.addEventListener('click',event=>{
  if(action==='item-note')openItemNoteV9(t.dataset.noteKind,t.dataset.noteId,t);
  if(action==='save-reference')saveReferenceV9(t.dataset.category,t.dataset.id);
  if(action==='save-kana'){const k=[...D.history.kana,...voiced,...yon].find(k=>k.hira===t.dataset.kana);if(k)addSaved({type:'kana',id:k.hira,kana:{hira:k.hira,kata:k.kata}})}
- if(action==='notebook-filter'){notebookFilterV9=t.dataset.filter;document.querySelectorAll('[data-action="notebook-filter"]').forEach(b=>b.classList.toggle('active',b===t));updateNotebookV9(true)}
+ if(action==='notebook-page'){const n=Number(t.dataset.page);if(Number.isInteger(n)&&n>=0){notebookPageV39=n;updateNotebookV9(true)}}
+ if(action==='notebook-filter'){notebookPageV39=0;notebookFilterV9=t.dataset.filter;document.querySelectorAll('[data-action="notebook-filter"]').forEach(b=>b.classList.toggle('active',b===t));updateNotebookV9(true)}
  if(action==='remove-global-saved'){writeBookStateV9(t.dataset.book,state=>state.wrong.splice(Number(t.dataset.index),1));updateNotebookV9()}
  if(action==='edit-global-note'){
   const row=notebookEntriesV9().find(r=>r.kind==='note'&&r.book===t.dataset.book&&r.key===t.dataset.noteKey);if(!row)return;
@@ -156,4 +157,4 @@ document.addEventListener('input',event=>{
 document.querySelector('#dialog').addEventListener('close',()=>{if(editedItemNoteV9){editedItemNoteV9=false;if(location.hash===shownRouteV8)render({immediate:true})}});
 window.addEventListener('storage',()=>{if(location.hash.startsWith('#notebook'))updateNotebookV9()});
 
-document.addEventListener('change',event=>{const kind=event.target.dataset.notebookFilter;if(kind==='book')notebookBookV9=event.target.value;if(kind==='area')notebookAreaV9=event.target.value;if(kind)updateNotebookV9(true)});
+document.addEventListener('change',event=>{const kind=event.target.dataset.notebookFilter;if(kind==='book')notebookBookV9=event.target.value;if(kind==='area')notebookAreaV9=event.target.value;if(kind){notebookPageV39=0;updateNotebookV9(true)}});
